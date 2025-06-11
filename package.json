@@ -1,30 +1,27 @@
 {
-  "name": "type-bun-orm",
-  "version": "1.0.0",
-  "description": "A lightweight TypeScript ORM for Bun runtime",
-  "main": "dist/index.js",
-  "module": "src/index.ts",
-  "type": "module",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+    "name": "type-bun-orm",
+    "version": "1.0.0",
+    "description": "A lightweight TypeScript ORM for Bun runtime",
+    "main": "dist/index.js",
+    "module": "src/index.ts",
+    "type": "module",
+    "scripts": {
+        "prepare": "if [ \"$CI\" = \"true\" ]; then echo 'CI detected: skipping lefthook install'; else bunx lefthook install; fi",
+        "lint": "bun biome check .",
+        "lint:fix": "bun biome check --write"
+    },
+    "keywords": ["orm", "typescript", "bun", "database"],
+    "author": "",
+    "license": "MIT",
+    "dependencies": {},
+    "devDependencies": {
+        "@biomejs/biome": "^1.9.4",
+        "@commitlint/cli": "^19.8.1",
+        "@commitlint/config-conventional": "^19.8.1",
+        "@types/bun": "latest",
+        "lefthook": "^1.11.13"
+    },
+    "peerDependencies": {
+        "typescript": "^5.0.0"
     }
-  },
-  "scripts": {
-    "build": "bun build src/index.ts --outdir dist --target bun",
-    "dev": "bun run src/index.ts",
-    "test": "bun test",
-    "typecheck": "bun --bun tsc --noEmit"
-  },
-  "keywords": ["orm", "typescript", "bun", "database"],
-  "author": "",
-  "license": "MIT",
-  "dependencies": {},
-  "devDependencies": {
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
-  }
 }

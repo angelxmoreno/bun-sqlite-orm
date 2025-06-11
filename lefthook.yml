@@ -1,0 +1,14 @@
+pre-commit:
+  parallel: true
+  commands:
+    biome:
+      run: bun run lint
+      skip:
+        - merge
+        - rebase
+      files: git diff --name-only HEAD
+
+commit-msg:
+  commands:
+    commitlint:
+      run: bunx commitlint --edit $1
