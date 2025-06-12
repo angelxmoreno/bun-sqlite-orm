@@ -32,6 +32,15 @@ export function Column(options: ColumnOptions = {}) {
             isGenerated: false,
         };
 
-        metadataContainer.addColumn(target.constructor as new () => unknown, propertyKey, columnMetadata);
+        const entityConstructor = target.constructor as new () => unknown;
+
+        // Auto-register entity if not already registered
+        // Only auto-register if the entity isn't already registered to avoid overriding explicit @Entity table names
+        if (!metadataContainer.hasEntity(entityConstructor)) {
+            const tableName = entityConstructor.name.toLowerCase();
+            metadataContainer.addEntity(entityConstructor, tableName);
+        }
+
+        metadataContainer.addColumn(entityConstructor, propertyKey, columnMetadata);
     };
 }

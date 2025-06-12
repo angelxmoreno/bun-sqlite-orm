@@ -8,6 +8,6 @@ export function Entity(tableName?: string) {
     return (target: ClassConstructor) => {
         const metadataContainer = getGlobalMetadataContainer();
         const finalTableName = tableName || target.name.toLowerCase();
-        metadataContainer.addEntity(target, finalTableName);
+        metadataContainer.addEntity(target, finalTableName, true);
     };
 }

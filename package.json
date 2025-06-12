@@ -8,7 +8,13 @@
     "scripts": {
         "prepare": "if [ \"$CI\" = \"true\" ]; then echo 'CI detected: skipping lefthook install'; else bunx lefthook install; fi",
         "lint": "bun biome check .",
-        "lint:fix": "bun biome check --write"
+        "lint:fix": "bun biome check --write",
+        "test": "bun test",
+        "test:unit": "bun test tests/unit",
+        "test:integration": "bun test tests/integration",
+        "test:e2e": "bun test tests/e2e",
+        "test:watch": "bun test --watch",
+        "test:coverage": "bun test --coverage"
     },
     "keywords": ["orm", "typescript", "bun", "database"],
     "author": "",

@@ -16,6 +16,14 @@ export function PrimaryGeneratedColumn(strategy: PrimaryGeneratedColumnType = 'i
             generationStrategy: strategy === 'int' ? 'increment' : 'uuid',
         };
 
-        metadataContainer.addColumn(target.constructor as new () => unknown, propertyKey, columnMetadata);
+        const entityConstructor = target.constructor as new () => unknown;
+
+        // Auto-register entity if not already registered
+        if (!metadataContainer.hasEntity(entityConstructor)) {
+            const tableName = entityConstructor.name.toLowerCase();
+            metadataContainer.addEntity(entityConstructor, tableName);
+        }
+
+        metadataContainer.addColumn(entityConstructor, propertyKey, columnMetadata);
     };
 }

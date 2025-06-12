@@ -6,7 +6,7 @@ import type { ColumnMetadata, EntityConstructor, EntityMetadata } from '../types
 export class MetadataContainer {
     private entities = new Map<EntityConstructor, EntityMetadata>();
 
-    addEntity(target: EntityConstructor, tableName: string): void {
+    addEntity(target: EntityConstructor, tableName: string, isExplicit = false): void {
         if (!this.entities.has(target)) {
             this.entities.set(target, {
                 target,
@@ -14,6 +14,11 @@ export class MetadataContainer {
                 columns: new Map(),
                 primaryColumns: [],
             });
+        } else if (isExplicit) {
+            // Allow @Entity decorator to override auto-registered table name
+            // biome-ignore lint/style/noNonNullAssertion: We just checked that the entity exists
+            const existingMetadata = this.entities.get(target)!;
+            existingMetadata.tableName = tableName;
         }
     }
 

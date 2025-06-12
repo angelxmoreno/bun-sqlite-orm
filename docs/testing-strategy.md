@@ -164,6 +164,113 @@ describe("User Active Record", () => {
 });
 ```
 
+### Unit Testing with Mocks
+
+For isolated unit testing of internal components, use Bun's `mock()` function:
+
+```typescript
+import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
+import { typeBunContainer } from '../../../src/container';
+
+describe('BaseEntity', () => {
+    let originalResolve: typeof typeBunContainer.resolve;
+
+    beforeEach(() => {
+        // Store original resolve method
+        originalResolve = typeBunContainer.resolve;
+        
+        // Override with mock
+        typeBunContainer.resolve = mock((token: string) => {
+            switch (token) {
+                case 'DatabaseConnection':
+                    return mockDb as unknown as Database;
+                case 'MetadataContainer':
+                    return mockMetadataContainer as unknown as MetadataContainer;
+                default:
+                    throw new Error(`Unknown token: ${token}`);
+            }
+        }) as typeof typeBunContainer.resolve;
+    });
+
+    afterEach(() => {
+        // Restore original resolve method to prevent test interference
+        typeBunContainer.resolve = originalResolve;
+    });
+});
+```
+
+#### Key Mocking Guidelines:
+
+1. **Always Restore Mocks**: Use `afterEach` to restore original methods
+2. **Type-Safe Mocking**: Use `as unknown as TargetType` for type assertions
+3. **Container Isolation**: Mock container.resolve properly to prevent global state issues
+4. **Private Access**: Use `as unknown as` for accessing private methods/properties in tests
+
+```typescript
+// Accessing private properties for testing
+(entity as unknown as { _isNew: boolean })._isNew = false;
+(entity as unknown as { _loadFromRow: (row: Record<string, unknown>) => void })._loadFromRow(row);
+```
+
+#### Mock Type Patterns:
+
+```typescript
+// Proper mock interfaces
+let mockDatabase: {
+    query: ReturnType<typeof mock>;
+    exec: ReturnType<typeof mock>;
+    close: ReturnType<typeof mock>;
+};
+
+// Typed mock functions
+mockDatabase = {
+    query: mock(() => ({
+        get: mock(),
+        all: mock(),
+        run: mock(() => ({ changes: 1, lastInsertRowid: 1 })),
+    })),
+    exec: mock(),
+    close: mock(),
+};
+```
+
+#### Async Testing Best Practices:
+
+```typescript
+// Don't await expect().rejects.toThrow() - it's unnecessary
+expect(TestEntity.get(999)).rejects.toThrow(EntityNotFoundError);
+
+// Don't await expect().resolves.toBe() - it's unnecessary  
+expect(dataSource.destroy()).resolves.toBeUndefined();
+
+// Only await actual async operations
+await entity.save();
+const result = await TestEntity.find({ name: 'test' });
+```
+
+#### TypeScript Compatibility:
+
+```typescript
+// For mocking global objects like Reflect.getMetadata
+const originalGetMetadata = Reflect.getMetadata;
+Reflect.getMetadata = mock((key: unknown, target: object, property?: string | symbol) => {
+    if (key === 'design:type' && property === 'createdAt') {
+        return Date;
+    }
+    if (property !== undefined) {
+        return originalGetMetadata?.(key, target, property);
+    }
+    return originalGetMetadata?.(key, target);
+}) as typeof Reflect.getMetadata;
+```
+
+#### Code Quality Guidelines:
+
+1. **No `any` Types**: Use proper typed interfaces and `ReturnType<typeof mock>`
+2. **Import Organization**: Use `import type` for type-only imports
+3. **Biome Linting**: All tests must pass `npx biome check` without errors
+4. **Test Isolation**: Each test file should not affect global state for other tests
+
 ## Test Data Management
 
 ### Isolated Test Data
