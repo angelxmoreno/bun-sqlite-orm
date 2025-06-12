@@ -13,7 +13,12 @@
     "keywords": ["orm", "typescript", "bun", "database"],
     "author": "",
     "license": "MIT",
-    "dependencies": {},
+    "dependencies": {
+        "class-validator": "^0.14.2",
+        "pino": "^9.7.0",
+        "reflect-metadata": "^0.2.2",
+        "tsyringe": "^4.10.0"
+    },
     "devDependencies": {
         "@biomejs/biome": "^1.9.4",
         "@commitlint/cli": "^19.8.1",
