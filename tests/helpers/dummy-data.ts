@@ -20,7 +20,7 @@ export interface PostData {
 
 export interface CommentData {
     text: string;
-    postId: number;
+    postId: string | number;
     authorId: number;
 }
 
@@ -52,7 +52,11 @@ export function createPostData(authorId: number, overrides: Partial<PostData> = 
 /**
  * Generate dummy comment data
  */
-export function createCommentData(postId: number, authorId: number, overrides: Partial<CommentData> = {}): CommentData {
+export function createCommentData(
+    postId: string | number,
+    authorId: number,
+    overrides: Partial<CommentData> = {}
+): CommentData {
     return {
         text: TestDataGenerator.sentence(),
         postId,
@@ -86,7 +90,11 @@ export function createTestPost(authorId: number, overrides: Partial<PostData> = 
 /**
  * Create a complete comment entity with dummy data
  */
-export function createTestComment(postId: number, authorId: number, overrides: Partial<CommentData> = {}): TestComment {
+export function createTestComment(
+    postId: string | number,
+    authorId: number,
+    overrides: Partial<CommentData> = {}
+): TestComment {
     const comment = new TestComment();
     const commentData = createCommentData(postId, authorId, overrides);
 
@@ -112,7 +120,7 @@ export function createTestPosts(authorId: number, count: number, overrides: Part
  * Create multiple test comments for a post
  */
 export function createTestComments(
-    postId: number,
+    postId: string | number,
     authorId: number,
     count: number,
     overrides: Partial<CommentData> = {}

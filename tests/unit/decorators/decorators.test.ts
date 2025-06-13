@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 import { getGlobalMetadataContainer } from '../../../src/container';
 import { Column, Entity, PrimaryColumn, PrimaryGeneratedColumn } from '../../../src/decorators';
 import { BaseEntity } from '../../../src/entity';
-import type { EntityConstructor, MetadataContainer } from '../../../src/types';
+import type { MetadataContainer } from '../../../src/metadata';
+import type { EntityConstructor } from '../../../src/types';
 
 describe('Decorators', () => {
     let metadataContainer: MetadataContainer;
@@ -284,7 +285,7 @@ describe('Decorators', () => {
             const primaryColumns = metadataContainer.getPrimaryColumns(CompositeKeyEntity as EntityConstructor);
 
             expect(primaryColumns).toHaveLength(2);
-            const primaryKeys = primaryColumns.map((col) => col.propertyName);
+            const primaryKeys = primaryColumns.map((col: { propertyName: string }) => col.propertyName);
             expect(primaryKeys).toContain('key1');
             expect(primaryKeys).toContain('key2');
         });

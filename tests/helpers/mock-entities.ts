@@ -72,7 +72,7 @@ export class TestComment extends BaseEntity {
 
 @Entity('test_simple')
 export class SimpleTestEntity extends BaseEntity {
-    @PrimaryColumn('text')
+    @PrimaryColumn()
     id!: string;
 
     @Column({ type: 'text' })
