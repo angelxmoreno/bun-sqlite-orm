@@ -89,6 +89,14 @@ export class QueryBuilder {
     }
 
     delete(tableName: string, conditions: Record<string, unknown>): { sql: string; params: unknown[] } {
+        if (Object.keys(conditions).length === 0) {
+            // Delete all records when no conditions provided
+            return {
+                sql: `DELETE FROM ${tableName}`,
+                params: [],
+            };
+        }
+
         const whereClause = Object.keys(conditions)
             .map((key) => `${key} = ?`)
             .join(' AND ');

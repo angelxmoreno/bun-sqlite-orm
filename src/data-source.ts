@@ -1,8 +1,9 @@
 import { Database } from 'bun:sqlite';
 import { container } from 'tsyringe';
+import { getGlobalMetadataContainer, typeBunContainer } from './container';
 import { NullLogger } from './logger';
 import { MetadataContainer } from './metadata';
-import type { SqlGenerator } from './sql';
+import { QueryBuilder, SqlGenerator } from './sql';
 import type { DataSourceOptions, DbLogger } from './types';
 
 export class DataSource {
@@ -19,19 +20,31 @@ export class DataSource {
             throw new Error('DataSource is already initialized');
         }
 
-        // Register database connection
+        // Register database connection in both containers
         this.typeBunContainer.register('DatabaseConnection', {
             useValue: this.database,
         });
+        typeBunContainer.register('DatabaseConnection', {
+            useValue: this.database,
+        });
 
-        // Register logger or use NullLogger as default
+        // Register logger or use NullLogger as default in both containers
         const logger = this.options.logger || new NullLogger();
         this.typeBunContainer.register('DbLogger', {
             useValue: logger,
         });
+        typeBunContainer.register('DbLogger', {
+            useValue: logger,
+        });
 
-        // Register MetadataContainer
+        // Register MetadataContainer (only in local container)
         this.typeBunContainer.registerSingleton('MetadataContainer', MetadataContainer);
+
+        // Register SqlGenerator (only in local container)
+        this.typeBunContainer.registerSingleton('SqlGenerator', SqlGenerator);
+
+        // Register QueryBuilder (only in local container - global already has it)
+        this.typeBunContainer.registerSingleton('QueryBuilder', QueryBuilder);
 
         // Process entities and populate metadata
         const metadataContainer = this.typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
@@ -75,7 +88,7 @@ export class DataSource {
         if (!this.isInitialized) {
             throw new Error('DataSource must be initialized before accessing metadata');
         }
-        return this.typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
+        return getGlobalMetadataContainer();
     }
 
     async runMigrations(): Promise<void> {

@@ -23,7 +23,7 @@ export class SqlGenerator {
                 columnDef += ' UNIQUE';
             }
 
-            if (column.default !== undefined) {
+            if (column.default !== undefined && typeof column.default !== 'function') {
                 columnDef += ` DEFAULT ${this.formatDefaultValue(column.default)}`;
             }
 
@@ -102,6 +102,11 @@ export class SqlGenerator {
         }
         if (typeof value === 'boolean') {
             return value ? '1' : '0';
+        }
+        if (typeof value === 'function') {
+            // For function defaults, we'll handle them at insert time, not in DDL
+            // Return CURRENT_TIMESTAMP for date functions as a common case
+            return 'CURRENT_TIMESTAMP';
         }
         return String(value);
     }

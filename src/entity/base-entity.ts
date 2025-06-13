@@ -24,6 +24,7 @@ export abstract class BaseEntity {
         // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
         const instance = new this();
         Object.assign(instance, data);
+        (instance as unknown as { _captureOriginalValues(): void })._captureOriginalValues();
         return instance;
     }
 
@@ -293,9 +294,22 @@ export abstract class BaseEntity {
     private async _validate(): Promise<void> {
         const logger = typeBunContainer.resolve<DbLogger>('DbLogger');
 
-        const errors = await validate(this);
-        if (errors.length > 0) {
-            const validationErrors: ValidationErrorDetail[] = errors.flatMap((error) =>
+        const errors = await validate(this, {
+            skipMissingProperties: true,
+            forbidNonWhitelisted: false,
+        });
+
+        // Filter out the "unknown value" error which occurs for entities without validation decorators
+        const realErrors = errors.filter((error) => {
+            const constraints = error.constraints || {};
+            return (
+                !constraints.unknownValue ||
+                constraints.unknownValue !== 'an unknown value was passed to the validate function'
+            );
+        });
+
+        if (realErrors.length > 0) {
+            const validationErrors: ValidationErrorDetail[] = realErrors.flatMap((error) =>
                 Object.values(error.constraints || {}).map((message) => ({
                     property: error.property,
                     message,
