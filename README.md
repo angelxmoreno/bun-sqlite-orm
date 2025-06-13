@@ -1,5 +1,11 @@
 # BunSQLiteORM
 
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=angelxmoreno_bun-sqlite-orm&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=angelxmoreno_bun-sqlite-orm)
+[![codecov](https://codecov.io/gh/angelxmoreno/bun-sqlite-orm/graph/badge.svg?token=YOUR_TOKEN_HERE)](https://codecov.io/gh/angelxmoreno/bun-sqlite-orm)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=angelxmoreno_bun-sqlite-orm&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=angelxmoreno_bun-sqlite-orm)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=angelxmoreno_bun-sqlite-orm&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=angelxmoreno_bun-sqlite-orm)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=angelxmoreno_bun-sqlite-orm&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=angelxmoreno_bun-sqlite-orm)
+
 A lightweight TypeScript ORM for Bun runtime with Bun SQLite, featuring Active Record pattern and decorator-based entities.
 
 ## Features
