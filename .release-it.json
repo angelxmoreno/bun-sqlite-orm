@@ -16,7 +16,7 @@
     },
     "hooks": {
         "before:init": ["bun run lint", "bun run typecheck", "bun test"],
-        "after:bump": ["echo 'Version bumped to ${version}'"],
+        "after:bump": ["bun run lint:fix", "echo 'Version bumped to ${version}'"],
         "after:release": ["echo 'Released ${name} v${version} to ${repo.repository}'"]
     },
     "plugins": {
