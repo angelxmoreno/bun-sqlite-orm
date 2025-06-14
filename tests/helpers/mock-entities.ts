@@ -100,3 +100,22 @@ export class InvalidTestEntity extends BaseEntity {
     @MinLength(10) // This will fail for short strings
     shortText!: string;
 }
+
+// Entity with boolean properties (for testing boolean conversion)
+@Entity('boolean_test_entities')
+export class BooleanTestEntity extends BaseEntity {
+    @PrimaryGeneratedColumn('int')
+    id!: number;
+
+    @Column({ type: 'text' })
+    name!: string;
+
+    @Column({ type: 'integer' }) // SQLite stores booleans as integers
+    isActive!: boolean;
+
+    @Column({ type: 'integer', nullable: true })
+    isPublished?: boolean;
+
+    @Column({ type: 'integer', default: () => 0 }) // Default false
+    isDeleted!: boolean;
+}

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test';
-import { DataSource } from '../../../src/data-source';
-import { NullLogger } from '../../../src/logger';
-import type { DataSourceOptions, EntityConstructor } from '../../../src/types';
+import type { DataSourceOptions, EntityConstructor } from '../../../src';
+import { NullLogger } from '../../../src';
+import { DataSource } from '../../../src';
 
 // Mock entities for testing
 class MockEntity {
@@ -35,7 +35,7 @@ describe('DataSource', () => {
         (global as Record<string, unknown>).Database = mock(() => mockDatabase);
 
         mockOptions = {
-            database: './test.db',
+            database: './tests/test.db',
             entities: [MockEntity as EntityConstructor, AnotherMockEntity as EntityConstructor],
             logger: new NullLogger(),
         };
@@ -86,7 +86,7 @@ describe('DataSource', () => {
     describe('Configuration Validation', () => {
         test('should accept valid configuration options', () => {
             const validOptions: DataSourceOptions = {
-                database: './test.db',
+                database: './tests/test.db',
                 entities: [MockEntity as EntityConstructor],
                 logger: mockOptions.logger,
             };
@@ -96,7 +96,7 @@ describe('DataSource', () => {
 
         test('should handle options with migrations', () => {
             const optionsWithMigrations: DataSourceOptions = {
-                database: './test.db',
+                database: './tests/test.db',
                 entities: [MockEntity as EntityConstructor],
                 migrations: ['./migrations/*.ts'],
                 logger: mockOptions.logger,
@@ -107,7 +107,7 @@ describe('DataSource', () => {
 
         test('should handle minimal options', () => {
             const minimalOptions: DataSourceOptions = {
-                database: './test.db',
+                database: './tests/test.db',
                 entities: [],
             };
 
