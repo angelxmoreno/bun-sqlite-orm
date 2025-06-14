@@ -2,13 +2,13 @@
 
 <div align="center">
 
-[![npm version](https://badge.fury.io/js/bun-sqlite-orm.svg)](https://badge.fury.io/js/bun-sqlite-orm)
-[![Bun](https://img.shields.io/badge/Bun-%23000000.svg?style=flat&logo=bun&logoColor=white)](https://bun.sh)
-[![TypeScript](https://img.shields.io/badge/TypeScript-%23007ACC.svg?style=flat&logo=typescript&logoColor=white)](https://typescriptlang.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![NPM Version](https://img.shields.io/npm/v/axios-date-transformer?style=for-the-badge)](https://www.npmjs.com/package/bun-sqlite-orm)
+[![Bun](https://img.shields.io/badge/Bun-%23000000.svg?style=for-the-badge&logo=bun&logoColor=white&logoSize=auto)](https://bun.sh)
+[![TypeScript](https://img.shields.io/badge/TypeScript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)](https://typescriptlang.org/)
+[![NPM License](https://img.shields.io/npm/l/axios-date-transformer?style=for-the-badge&color=397acb)](https://opensource.org/licenses/MIT)
 
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=angelxmoreno_bun-sqlite-orm&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=angelxmoreno_bun-sqlite-orm)
-[![codecov](https://codecov.io/gh/angelxmoreno/bun-sqlite-orm/graph/badge.svg?token=YOUR_TOKEN_HERE)](https://codecov.io/gh/angelxmoreno/bun-sqlite-orm)
+[![codecov](https://codecov.io/gh/angelxmoreno/bun-sqlite-orm/branch/main/graph/badge.svg?token=3QKV9IZTNA)](https://codecov.io/gh/angelxmoreno/bun-sqlite-orm)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=angelxmoreno_bun-sqlite-orm&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=angelxmoreno_bun-sqlite-orm)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=angelxmoreno_bun-sqlite-orm&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=angelxmoreno_bun-sqlite-orm)
 [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=angelxmoreno_bun-sqlite-orm&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=angelxmoreno_bun-sqlite-orm)
