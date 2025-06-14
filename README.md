@@ -2,10 +2,10 @@
 
 <div align="center">
 
-[![NPM Version](https://img.shields.io/npm/v/axios-date-transformer?style=for-the-badge)](https://www.npmjs.com/package/bun-sqlite-orm)
+[![NPM Version](https://img.shields.io/npm/v/bun-sqlite-orm?style=for-the-badge)](https://www.npmjs.com/package/bun-sqlite-orm)
 [![Bun](https://img.shields.io/badge/Bun-%23000000.svg?style=for-the-badge&logo=bun&logoColor=white&logoSize=auto)](https://bun.sh)
 [![TypeScript](https://img.shields.io/badge/TypeScript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)](https://typescriptlang.org/)
-[![NPM License](https://img.shields.io/npm/l/axios-date-transformer?style=for-the-badge&color=397acb)](https://opensource.org/licenses/MIT)
+[![NPM License](https://img.shields.io/npm/l/bun-sqlite-orm?style=for-the-badge&color=397acb)](https://opensource.org/licenses/MIT)
 
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=angelxmoreno_bun-sqlite-orm&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=angelxmoreno_bun-sqlite-orm)
 [![codecov](https://codecov.io/gh/angelxmoreno/bun-sqlite-orm/branch/main/graph/badge.svg?token=3QKV9IZTNA)](https://codecov.io/gh/angelxmoreno/bun-sqlite-orm)
