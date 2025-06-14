@@ -62,10 +62,10 @@
         "@biomejs/biome": "^1.9.4",
         "@commitlint/cli": "^19.8.1",
         "@commitlint/config-conventional": "^19.8.1",
-        "@release-it/conventional-changelog": "^10.0.1",
+        "@release-it/conventional-changelog": "8.0.0",
         "@types/bun": "latest",
         "lefthook": "^1.11.13",
-        "release-it": "^19.0.3"
+        "release-it": "17.6.0"
     },
     "peerDependencies": {
         "typescript": "^5.0.0"
