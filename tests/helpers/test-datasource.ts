@@ -20,7 +20,7 @@ export interface TestDataSourceResult {
  */
 export async function createTestDataSource(options: TestDataSourceOptions): Promise<TestDataSourceResult> {
     // Generate unique database path for this test
-    const testDbPath = options.database || `./test-${Date.now()}-${Math.random().toString(36).substring(2)}.db`;
+    const testDbPath = options.database || `./tests/test-${Date.now()}-${Math.random().toString(36).substring(2)}.db`;
 
     const dataSource = new DataSource({
         database: testDbPath,
@@ -61,7 +61,7 @@ export async function createTestDataSource(options: TestDataSourceOptions): Prom
  * Creates a raw SQLite database for low-level testing
  */
 export function createTestDatabase(dbPath?: string): { db: Database; cleanup: () => void } {
-    const testDbPath = dbPath || `./test-raw-${Date.now()}-${Math.random().toString(36).substring(2)}.db`;
+    const testDbPath = dbPath || `./tests/test-raw-${Date.now()}-${Math.random().toString(36).substring(2)}.db`;
     const db = new Database(testDbPath);
 
     const cleanup = () => {

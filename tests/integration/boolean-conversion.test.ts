@@ -1,27 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
-import { Column, Entity, PrimaryGeneratedColumn } from '../../../src/decorators';
-import { BaseEntity } from '../../../src/entity';
-import { clearTestData, createTestDataSource } from '../../helpers/test-datasource';
-import type { TestDataSourceResult } from '../../helpers/test-datasource';
-
-// Test entity with boolean properties
-@Entity('boolean_test_entities')
-class BooleanTestEntity extends BaseEntity {
-    @PrimaryGeneratedColumn('int')
-    id!: number;
-
-    @Column({ type: 'text' })
-    name!: string;
-
-    @Column({ type: 'integer' }) // SQLite stores booleans as integers
-    isActive!: boolean;
-
-    @Column({ type: 'integer', nullable: true })
-    isPublished?: boolean;
-
-    @Column({ type: 'integer', default: () => 0 }) // Default false
-    isDeleted!: boolean;
-}
+import { BooleanTestEntity } from '../helpers/mock-entities';
+import { clearTestData, createTestDataSource } from '../helpers/test-datasource';
+import type { TestDataSourceResult } from '../helpers/test-datasource';
 
 describe('Boolean Type Conversion', () => {
     let testDS: TestDataSourceResult;
