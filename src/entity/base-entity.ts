@@ -436,7 +436,7 @@ export abstract class BaseEntity {
 
                 // Convert INTEGER (1/0) back to boolean for boolean properties
                 if (metadata.type === 'integer' && tsType === Boolean) {
-                    (this as Record<string, unknown>)[propertyName] = Boolean(value);
+                    (this as Record<string, unknown>)[propertyName] = value === 1;
                 }
                 // Convert ISO string back to Date
                 else if (metadata.type === 'text' && typeof value === 'string' && tsType === Date) {
