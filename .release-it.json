@@ -1,0 +1,28 @@
+{
+    "git": {
+        "commitMessage": "chore: release v${version}",
+        "tagName": "v${version}",
+        "requireCleanWorkingDir": true,
+        "requireUpstream": false
+    },
+    "github": {
+        "release": true,
+        "releaseName": "Release v${version}",
+        "releaseNotes": null
+    },
+    "npm": {
+        "publish": true,
+        "publishPath": "."
+    },
+    "hooks": {
+        "before:init": ["bun run lint", "bun run typecheck", "bun test"],
+        "after:bump": ["echo 'Version bumped to ${version}'"],
+        "after:release": ["echo 'Released ${name} v${version} to ${repo.repository}'"]
+    },
+    "plugins": {
+        "@release-it/conventional-changelog": {
+            "preset": "angular",
+            "infile": "CHANGELOG.md"
+        }
+    }
+}
