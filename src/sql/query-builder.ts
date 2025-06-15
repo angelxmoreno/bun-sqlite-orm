@@ -35,10 +35,10 @@ export class QueryBuilder {
         return `CREATE TABLE ${tableName} (${columnDefinitions.join(', ')})`;
     }
 
-    insert(tableName: string, data: Record<string, unknown>): { sql: string; params: SQLQueryBindings[] } {
+    insert(tableName: string, data: Record<string, SQLQueryBindings>): { sql: string; params: SQLQueryBindings[] } {
         const columns = Object.keys(data);
         const placeholders = columns.map(() => '?').join(', ');
-        const values = Object.values(data) as SQLQueryBindings[];
+        const values = Object.values(data);
 
         return {
             sql: `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${placeholders})`,
@@ -48,7 +48,7 @@ export class QueryBuilder {
 
     select(
         tableName: string,
-        conditions?: Record<string, unknown>,
+        conditions?: Record<string, SQLQueryBindings>,
         limit?: number
     ): { sql: string; params: SQLQueryBindings[] } {
         let sql = `SELECT * FROM ${tableName}`;
@@ -59,7 +59,7 @@ export class QueryBuilder {
                 .map((key) => `${key} = ?`)
                 .join(' AND ');
             sql += ` WHERE ${whereClause}`;
-            params.push(...(Object.values(conditions) as SQLQueryBindings[]));
+            params.push(...Object.values(conditions));
         }
 
         if (limit) {
@@ -71,8 +71,8 @@ export class QueryBuilder {
 
     update(
         tableName: string,
-        data: Record<string, unknown>,
-        conditions: Record<string, unknown>
+        data: Record<string, SQLQueryBindings>,
+        conditions: Record<string, SQLQueryBindings>
     ): { sql: string; params: SQLQueryBindings[] } {
         const setClause = Object.keys(data)
             .map((key) => `${key} = ?`)
@@ -84,11 +84,14 @@ export class QueryBuilder {
 
         return {
             sql: `UPDATE ${tableName} SET ${setClause} WHERE ${whereClause}`,
-            params: [...Object.values(data), ...Object.values(conditions)] as SQLQueryBindings[],
+            params: [...Object.values(data), ...Object.values(conditions)],
         };
     }
 
-    delete(tableName: string, conditions: Record<string, unknown>): { sql: string; params: SQLQueryBindings[] } {
+    delete(
+        tableName: string,
+        conditions: Record<string, SQLQueryBindings>
+    ): { sql: string; params: SQLQueryBindings[] } {
         if (Object.keys(conditions).length === 0) {
             // Delete all records when no conditions provided
             return {
@@ -103,11 +106,14 @@ export class QueryBuilder {
 
         return {
             sql: `DELETE FROM ${tableName} WHERE ${whereClause}`,
-            params: Object.values(conditions) as SQLQueryBindings[],
+            params: Object.values(conditions),
         };
     }
 
-    count(tableName: string, conditions?: Record<string, unknown>): { sql: string; params: SQLQueryBindings[] } {
+    count(
+        tableName: string,
+        conditions?: Record<string, SQLQueryBindings>
+    ): { sql: string; params: SQLQueryBindings[] } {
         let sql = `SELECT COUNT(*) as count FROM ${tableName}`;
         const params: SQLQueryBindings[] = [];
 
@@ -116,7 +122,7 @@ export class QueryBuilder {
                 .map((key) => `${key} = ?`)
                 .join(' AND ');
             sql += ` WHERE ${whereClause}`;
-            params.push(...(Object.values(conditions) as SQLQueryBindings[]));
+            params.push(...Object.values(conditions));
         }
 
         return { sql, params };

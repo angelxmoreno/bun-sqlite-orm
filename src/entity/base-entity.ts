@@ -41,7 +41,7 @@ export abstract class BaseEntity {
         return instance;
     }
 
-    static async get<T extends BaseEntity>(this: new () => T, id: unknown): Promise<T> {
+    static async get<T extends BaseEntity>(this: new () => T, id: SQLQueryBindings): Promise<T> {
         const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
         const logger = typeBunContainer.resolve<DbLogger>('DbLogger');
 
@@ -83,7 +83,10 @@ export abstract class BaseEntity {
         }
     }
 
-    static async find<T extends BaseEntity>(this: new () => T, conditions: Record<string, unknown>): Promise<T[]> {
+    static async find<T extends BaseEntity>(
+        this: new () => T,
+        conditions: Record<string, SQLQueryBindings>
+    ): Promise<T[]> {
         const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
         const logger = typeBunContainer.resolve<DbLogger>('DbLogger');
 
@@ -112,16 +115,37 @@ export abstract class BaseEntity {
 
     static async findFirst<T extends BaseEntity>(
         this: new () => T,
-        conditions: Record<string, unknown>
+        conditions: Record<string, SQLQueryBindings>
     ): Promise<T | null> {
+        const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
+        const logger = typeBunContainer.resolve<DbLogger>('DbLogger');
+
         // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
-        const results = await (this as unknown as { find: (conditions: Record<string, unknown>) => Promise<T[]> }).find(
-            conditions
-        );
-        return results.length > 0 ? results[0] : null;
+        const tableName = metadataContainer.getTableName(this);
+        const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
+        const { sql, params } = queryBuilder.select(tableName, conditions, 1);
+
+        logger.debug(`Executing query: ${sql}`, { params });
+
+        try {
+            const row = BaseEntity._executeQuery<Record<string, unknown> | undefined>(sql, params, 'get');
+            if (!row) {
+                return null;
+            }
+
+            // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
+            const instance = new this();
+            instance._loadFromRow(row);
+            return instance;
+        } catch (error) {
+            // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
+            logger.error(`Database error in ${this.name}.findFirst()`, error);
+            // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
+            throw new DatabaseError(`Failed to fetch ${this.name} record`, error as Error);
+        }
     }
 
-    static async count(conditions?: Record<string, unknown>): Promise<number> {
+    static async count(conditions?: Record<string, SQLQueryBindings>): Promise<number> {
         const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
         const logger = typeBunContainer.resolve<DbLogger>('DbLogger');
 
@@ -143,13 +167,15 @@ export abstract class BaseEntity {
         }
     }
 
-    static async exists(conditions: Record<string, unknown>): Promise<boolean> {
+    static async exists(conditions: Record<string, SQLQueryBindings>): Promise<boolean> {
         const count = await // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
-        (this as unknown as { count: (conditions?: Record<string, unknown>) => Promise<number> }).count(conditions);
+        (this as unknown as { count: (conditions?: Record<string, SQLQueryBindings>) => Promise<number> }).count(
+            conditions
+        );
         return count > 0;
     }
 
-    static async deleteAll(conditions: Record<string, unknown>): Promise<number> {
+    static async deleteAll(conditions: Record<string, SQLQueryBindings>): Promise<number> {
         const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
         const logger = typeBunContainer.resolve<DbLogger>('DbLogger');
 
@@ -173,7 +199,10 @@ export abstract class BaseEntity {
         }
     }
 
-    static async updateAll(data: Record<string, unknown>, conditions: Record<string, unknown>): Promise<number> {
+    static async updateAll(
+        data: Record<string, SQLQueryBindings>,
+        conditions: Record<string, SQLQueryBindings>
+    ): Promise<number> {
         const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
         const logger = typeBunContainer.resolve<DbLogger>('DbLogger');
 
@@ -208,7 +237,7 @@ export abstract class BaseEntity {
         }
     }
 
-    async update(data: Record<string, unknown>): Promise<void> {
+    async update(data: Record<string, SQLQueryBindings>): Promise<void> {
         Object.assign(this, data);
         await this.save();
     }
@@ -224,9 +253,20 @@ export abstract class BaseEntity {
         const tableName = metadataContainer.getTableName(this.constructor as unknown as EntityConstructor);
         const primaryColumns = metadataContainer.getPrimaryColumns(this.constructor as unknown as EntityConstructor);
 
-        const conditions: Record<string, unknown> = {};
+        const conditions: Record<string, SQLQueryBindings> = {};
         for (const primaryColumn of primaryColumns) {
-            conditions[primaryColumn.propertyName] = (this as Record<string, unknown>)[primaryColumn.propertyName];
+            const value = (this as Record<string, unknown>)[primaryColumn.propertyName];
+            if (
+                value !== undefined &&
+                value !== null &&
+                (typeof value === 'string' ||
+                    typeof value === 'number' ||
+                    typeof value === 'boolean' ||
+                    typeof value === 'bigint' ||
+                    value instanceof Uint8Array)
+            ) {
+                conditions[primaryColumn.propertyName] = value as SQLQueryBindings;
+            }
         }
 
         const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
@@ -349,7 +389,7 @@ export abstract class BaseEntity {
             }
         }
 
-        const data: Record<string, unknown> = {};
+        const data: Record<string, SQLQueryBindings> = {};
         for (const [propertyName, metadata] of columns) {
             // Skip auto-increment columns
             if (metadata.isGenerated && metadata.generationStrategy === 'increment') {
@@ -359,7 +399,19 @@ export abstract class BaseEntity {
             const value = (this as Record<string, unknown>)[propertyName];
             if (value !== undefined) {
                 // Convert Date to ISO string for storage
-                data[propertyName] = value instanceof Date ? value.toISOString() : value;
+                const convertedValue = value instanceof Date ? value.toISOString() : value;
+                // Only include values that are valid SQLQueryBindings
+                if (
+                    convertedValue !== undefined &&
+                    convertedValue !== null &&
+                    (typeof convertedValue === 'string' ||
+                        typeof convertedValue === 'number' ||
+                        typeof convertedValue === 'boolean' ||
+                        typeof convertedValue === 'bigint' ||
+                        convertedValue instanceof Uint8Array)
+                ) {
+                    data[propertyName] = convertedValue as SQLQueryBindings;
+                }
             }
         }
 
@@ -402,20 +454,43 @@ export abstract class BaseEntity {
         const primaryColumns = metadataContainer.getPrimaryColumns(this.constructor as unknown as EntityConstructor);
 
         // Build data object excluding primary keys
-        const data: Record<string, unknown> = {};
+        const data: Record<string, SQLQueryBindings> = {};
         for (const [propertyName, metadata] of columns) {
             if (!metadata.isPrimary) {
                 const value = (this as Record<string, unknown>)[propertyName];
                 if (value !== undefined) {
-                    data[propertyName] = value instanceof Date ? value.toISOString() : value;
+                    const convertedValue = value instanceof Date ? value.toISOString() : value;
+                    // Only include values that are valid SQLQueryBindings
+                    if (
+                        convertedValue !== undefined &&
+                        convertedValue !== null &&
+                        (typeof convertedValue === 'string' ||
+                            typeof convertedValue === 'number' ||
+                            typeof convertedValue === 'boolean' ||
+                            typeof convertedValue === 'bigint' ||
+                            convertedValue instanceof Uint8Array)
+                    ) {
+                        data[propertyName] = convertedValue as SQLQueryBindings;
+                    }
                 }
             }
         }
 
         // Build conditions from primary keys
-        const conditions: Record<string, unknown> = {};
+        const conditions: Record<string, SQLQueryBindings> = {};
         for (const primaryColumn of primaryColumns) {
-            conditions[primaryColumn.propertyName] = (this as Record<string, unknown>)[primaryColumn.propertyName];
+            const value = (this as Record<string, unknown>)[primaryColumn.propertyName];
+            if (
+                value !== undefined &&
+                value !== null &&
+                (typeof value === 'string' ||
+                    typeof value === 'number' ||
+                    typeof value === 'boolean' ||
+                    typeof value === 'bigint' ||
+                    value instanceof Uint8Array)
+            ) {
+                conditions[primaryColumn.propertyName] = value as SQLQueryBindings;
+            }
         }
 
         const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
