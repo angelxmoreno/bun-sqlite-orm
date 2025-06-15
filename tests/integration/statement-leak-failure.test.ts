@@ -38,8 +38,8 @@ describe('Statement Leak Failure Tests', () => {
                 // This should fail if statements were properly finalized
                 expect(() => stmt.get()).toThrow();
 
-                // But in BaseEntity, statements are never finalized, so they remain usable
-                // This test would pass with proper statement management but fails with current code
+                // BaseEntity now properly finalizes statements in _executeQuery
+                // This test demonstrates proper statement lifecycle management
             } finally {
                 db.close();
             }

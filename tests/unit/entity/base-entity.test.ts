@@ -302,8 +302,7 @@ describe('BaseEntity', () => {
             });
 
             test('should return false when no entities exist', async () => {
-                const mockGet = mock(() => ({ count: 0 }));
-                mockDb.query.mockReturnValue({ get: mockGet });
+                mockDb.setStatementReturn('get', { count: 0 });
 
                 const exists = await TestEntity.exists({ name: 'NonExistent' });
 
@@ -353,8 +352,7 @@ describe('BaseEntity', () => {
 
         describe('save', () => {
             test('should insert new entity', async () => {
-                const mockRun = mock(() => ({ changes: 1, lastInsertRowid: 1 }));
-                mockDb.query.mockReturnValue({ run: mockRun });
+                mockDb.setStatementReturn('run', { changes: 1, lastInsertRowid: 1 });
 
                 await entity.save();
 
@@ -370,8 +368,7 @@ describe('BaseEntity', () => {
                 (entity as unknown as { _isNew: boolean })._isNew = false;
                 (entity as unknown as { _captureOriginalValues: () => void })._captureOriginalValues();
 
-                const mockRun = mock(() => ({ changes: 1 }));
-                mockDb.query.mockReturnValue({ run: mockRun });
+                mockDb.setStatementReturn('run', { changes: 1 });
 
                 entity.name = 'Updated Name';
                 await entity.save();
@@ -409,8 +406,7 @@ describe('BaseEntity', () => {
 
                 const uuidEntity = AnotherEntity.build({ title: 'Test Title' });
 
-                const mockRun = mock(() => ({ changes: 1 }));
-                mockDb.query.mockReturnValue({ run: mockRun });
+                mockDb.setStatementReturn('run', { changes: 1 });
 
                 await uuidEntity.save();
 
@@ -448,8 +444,7 @@ describe('BaseEntity', () => {
 
                 const entityWithDefaults = TestEntity.build({});
 
-                const mockRun = mock(() => ({ changes: 1, lastInsertRowid: 1 }));
-                mockDb.query.mockReturnValue({ run: mockRun });
+                mockDb.setStatementReturn('run', { changes: 1, lastInsertRowid: 1 });
 
                 await entityWithDefaults.save();
 
@@ -470,8 +465,7 @@ describe('BaseEntity', () => {
                 entity.id = 1;
                 (entity as unknown as { _isNew: boolean })._isNew = false;
 
-                const mockRun = mock(() => ({ changes: 1 }));
-                mockDb.query.mockReturnValue({ run: mockRun });
+                mockDb.setStatementReturn('run', { changes: 1 });
 
                 await entity.update({ name: 'Updated Name', email: 'updated@example.com' });
 
@@ -486,8 +480,7 @@ describe('BaseEntity', () => {
                 entity.id = 1;
                 (entity as unknown as { _isNew: boolean })._isNew = false;
 
-                const mockRun = mock(() => ({ changes: 1 }));
-                mockDb.query.mockReturnValue({ run: mockRun });
+                mockDb.setStatementReturn('run', { changes: 1 });
 
                 await entity.remove();
 
@@ -628,8 +621,7 @@ describe('BaseEntity', () => {
 
     describe('Error Handling', () => {
         test('should preserve EntityNotFoundError in get method', async () => {
-            const mockGet = mock(() => null);
-            mockDb.query.mockReturnValue({ get: mockGet });
+            mockDb.setStatementReturn('get', null);
 
             try {
                 await TestEntity.get(999);
@@ -641,10 +633,7 @@ describe('BaseEntity', () => {
 
         test('should wrap database errors in DatabaseError', async () => {
             const originalError = new Error('Connection failed');
-            const mockGet = mock(() => {
-                throw originalError;
-            });
-            mockDb.query.mockReturnValue({ get: mockGet });
+            mockDb.setStatementThrow('get', originalError);
 
             try {
                 await TestEntity.get(1);

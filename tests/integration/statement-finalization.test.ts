@@ -174,7 +174,7 @@ describe('Statement Finalization Issues', () => {
 
             for (let i = 0; i < 50; i++) {
                 // Each query is slightly different, creating a new prepared statement
-                const sql = `SELECT ${i} as id, 'test_${i}' as name WHERE ${i} > 0`;
+                const sql = `SELECT ${i} as id, 'test_${i}' as name`;
                 uniqueQueries.push(sql);
             }
 

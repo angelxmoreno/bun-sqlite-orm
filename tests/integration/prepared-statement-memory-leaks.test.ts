@@ -50,7 +50,7 @@ describe('Prepared Statement Memory Leaks', () => {
             await Promise.all(queryPromises);
 
             // Force garbage collection if available
-            if (global.gc) {
+            if (typeof global.gc === 'function') {
                 global.gc();
             }
 
@@ -161,18 +161,16 @@ describe('Prepared Statement Memory Leaks', () => {
 
     describe('Statement Lifecycle Issues', () => {
         test('should demonstrate the need for statement cleanup', async () => {
-            // This test shows how different SQL patterns accumulate statements
-            const sqlPatterns = [
-                'SELECT * FROM test_users WHERE name = ?',
-                'SELECT * FROM test_users WHERE email = ?',
-                'SELECT * FROM test_users WHERE age = ?',
-                'SELECT * FROM test_users WHERE name = ? AND age = ?',
-                'SELECT COUNT(*) as count FROM test_users WHERE age >= ?',
-                'SELECT COUNT(*) as count FROM test_users WHERE age <= ?',
-                'INSERT INTO test_users (name, email, age, bio, createdAt) VALUES (?, ?, ?, ?, ?)',
-                'UPDATE test_users SET age = ? WHERE id = ?',
-                'DELETE FROM test_users WHERE id = ?',
-            ];
+            // This test shows how different SQL patterns accumulate statements:
+            // - SELECT * FROM test_users WHERE name = ?
+            // - SELECT * FROM test_users WHERE email = ?
+            // - SELECT * FROM test_users WHERE age = ?
+            // - SELECT * FROM test_users WHERE name = ? AND age = ?
+            // - SELECT COUNT(*) as count FROM test_users WHERE age >= ?
+            // - SELECT COUNT(*) as count FROM test_users WHERE age <= ?
+            // - INSERT INTO test_users (name, email, age, bio, createdAt) VALUES (?, ?, ?, ?, ?)
+            // - UPDATE test_users SET age = ? WHERE id = ?
+            // - DELETE FROM test_users WHERE id = ?
 
             // In the current implementation, each of these SQL patterns
             // would create a separate prepared statement via db.query()

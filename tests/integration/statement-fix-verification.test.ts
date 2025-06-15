@@ -83,21 +83,15 @@ describe('Statement Fix Verification', () => {
 
         test('should handle many operations without memory leaks', async () => {
             // Perform many operations that would previously leak statements
-            const operations: Promise<unknown>[] = [];
-
-            // Create many entities with different data patterns
+            // Create many entities with different data patterns (sequential to avoid SQLITE_BUSY)
             for (let i = 0; i < 50; i++) {
-                operations.push(
-                    TestUser.create({
-                        name: `User ${i}`,
-                        email: `user${i}@example.com`,
-                        age: 20 + (i % 50),
-                        bio: i % 3 === 0 ? `Bio for user ${i}` : undefined,
-                    })
-                );
+                await TestUser.create({
+                    name: `User ${i}`,
+                    email: `user${i}@example.com`,
+                    age: 20 + (i % 50),
+                    bio: i % 3 === 0 ? `Bio for user ${i}` : undefined,
+                });
             }
-
-            await Promise.all(operations);
 
             // Perform many different query patterns
             const queryOperations: Promise<unknown>[] = [];
@@ -181,7 +175,6 @@ describe('Statement Fix Verification', () => {
             expect(finalUsers.length).toBeLessThan(25);
 
             // All operations completed without statement leaks
-            expect(true).toBe(true);
         });
     });
 });
