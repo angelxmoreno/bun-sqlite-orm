@@ -1,5 +1,6 @@
 import { injectable } from 'tsyringe';
 import type { ColumnMetadata, SQLQueryBindings } from '../types';
+import { buildInsertClause, buildSetClause, buildWhereClause } from './query-utils';
 
 @injectable()
 export class QueryBuilder {
@@ -36,13 +37,11 @@ export class QueryBuilder {
     }
 
     insert(tableName: string, data: Record<string, SQLQueryBindings>): { sql: string; params: SQLQueryBindings[] } {
-        const columns = Object.keys(data);
-        const placeholders = columns.map(() => '?').join(', ');
-        const values = Object.values(data);
+        const { columns, placeholders, params } = buildInsertClause(data);
 
         return {
-            sql: `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${placeholders})`,
-            params: values,
+            sql: `INSERT INTO ${tableName} (${columns}) VALUES (${placeholders})`,
+            params,
         };
     }
 
@@ -52,15 +51,9 @@ export class QueryBuilder {
         limit?: number
     ): { sql: string; params: SQLQueryBindings[] } {
         let sql = `SELECT * FROM ${tableName}`;
-        const params: SQLQueryBindings[] = [];
+        const { whereClause, params } = buildWhereClause(conditions || {});
 
-        if (conditions && Object.keys(conditions).length > 0) {
-            const whereClause = Object.keys(conditions)
-                .map((key) => `${key} = ?`)
-                .join(' AND ');
-            sql += ` WHERE ${whereClause}`;
-            params.push(...Object.values(conditions));
-        }
+        sql += whereClause;
 
         if (limit) {
             sql += ` LIMIT ${limit}`;
@@ -74,17 +67,12 @@ export class QueryBuilder {
         data: Record<string, SQLQueryBindings>,
         conditions: Record<string, SQLQueryBindings>
     ): { sql: string; params: SQLQueryBindings[] } {
-        const setClause = Object.keys(data)
-            .map((key) => `${key} = ?`)
-            .join(', ');
-
-        const whereClause = Object.keys(conditions)
-            .map((key) => `${key} = ?`)
-            .join(' AND ');
+        const { setClause, params: setParams } = buildSetClause(data);
+        const { whereClause, params: whereParams } = buildWhereClause(conditions);
 
         return {
-            sql: `UPDATE ${tableName} SET ${setClause} WHERE ${whereClause}`,
-            params: [...Object.values(data), ...Object.values(conditions)],
+            sql: `UPDATE ${tableName} SET ${setClause}${whereClause}`,
+            params: [...setParams, ...whereParams],
         };
     }
 
@@ -92,21 +80,11 @@ export class QueryBuilder {
         tableName: string,
         conditions: Record<string, SQLQueryBindings>
     ): { sql: string; params: SQLQueryBindings[] } {
-        if (Object.keys(conditions).length === 0) {
-            // Delete all records when no conditions provided
-            return {
-                sql: `DELETE FROM ${tableName}`,
-                params: [],
-            };
-        }
-
-        const whereClause = Object.keys(conditions)
-            .map((key) => `${key} = ?`)
-            .join(' AND ');
+        const { whereClause, params } = buildWhereClause(conditions);
 
         return {
-            sql: `DELETE FROM ${tableName} WHERE ${whereClause}`,
-            params: Object.values(conditions),
+            sql: `DELETE FROM ${tableName}${whereClause}`,
+            params,
         };
     }
 
@@ -115,15 +93,9 @@ export class QueryBuilder {
         conditions?: Record<string, SQLQueryBindings>
     ): { sql: string; params: SQLQueryBindings[] } {
         let sql = `SELECT COUNT(*) as count FROM ${tableName}`;
-        const params: SQLQueryBindings[] = [];
+        const { whereClause, params } = buildWhereClause(conditions || {});
 
-        if (conditions && Object.keys(conditions).length > 0) {
-            const whereClause = Object.keys(conditions)
-                .map((key) => `${key} = ?`)
-                .join(' AND ');
-            sql += ` WHERE ${whereClause}`;
-            params.push(...Object.values(conditions));
-        }
+        sql += whereClause;
 
         return { sql, params };
     }

@@ -1,19 +1,8 @@
-import type { DbLogger } from '../types';
+import { BaseLogger } from './base-logger';
 
-export class ConsoleDbLogger implements DbLogger {
-    debug(message: string, meta?: unknown): void {
-        console.debug(`[DEBUG] ${message}`, meta || '');
-    }
-
-    info(message: string, meta?: unknown): void {
-        console.info(`[INFO] ${message}`, meta || '');
-    }
-
-    warn(message: string, meta?: unknown): void {
-        console.warn(`[WARN] ${message}`, meta || '');
-    }
-
-    error(message: string, meta?: unknown): void {
-        console.error(`[ERROR] ${message}`, meta || '');
+export class ConsoleDbLogger extends BaseLogger {
+    protected log(level: string, message: string, meta?: unknown): void {
+        const logMethod = console[level.toLowerCase() as keyof Console] as typeof console.log;
+        logMethod(`[${level}] ${message}`, meta || '');
     }
 }

@@ -6,6 +6,14 @@ import type { ValidationErrorDetail } from '../errors';
 import type { MetadataContainer } from '../metadata';
 import type { QueryBuilder } from '../sql';
 import type { DbLogger, EntityConstructor, SQLQueryBindings } from '../types';
+import {
+    buildDataObject,
+    buildPrimaryKeyConditions,
+    executeWithErrorHandling,
+    getEntityMetadata,
+    resolveDependencies,
+    toSQLQueryBinding,
+} from './entity-utils';
 
 export abstract class BaseEntity {
     private _isNew = true;
@@ -42,18 +50,9 @@ export abstract class BaseEntity {
     }
 
     static async get<T extends BaseEntity>(this: new () => T, id: SQLQueryBindings): Promise<T> {
-        const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
-        const logger = typeBunContainer.resolve<DbLogger>('DbLogger');
-
+        const { metadataContainer, logger } = resolveDependencies();
         // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
-        const tableName = metadataContainer.getTableName(this);
-        // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
-        const primaryColumns = metadataContainer.getPrimaryColumns(this);
-
-        if (primaryColumns.length === 0) {
-            // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
-            throw new Error(`No primary key defined for entity ${this.name}`);
-        }
+        const { tableName, primaryColumns } = getEntityMetadata(this, metadataContainer, true);
 
         const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
         const primaryColumn = primaryColumns[0]; // Assume single primary key for now
@@ -61,110 +60,108 @@ export abstract class BaseEntity {
 
         logger.debug(`Executing query: ${sql}`, { params });
 
-        try {
-            const row = BaseEntity._executeQuery<Record<string, unknown> | undefined>(sql, params, 'get');
-            if (!row) {
-                // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
-                throw new EntityNotFoundError(this.name, { [primaryColumn.propertyName]: id });
-            }
+        return executeWithErrorHandling(
+            () => {
+                const row = BaseEntity._executeQuery<Record<string, unknown> | undefined>(sql, params, 'get');
+                if (!row) {
+                    // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
+                    throw new EntityNotFoundError(this.name, { [primaryColumn.propertyName]: id });
+                }
 
+                // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
+                const instance = new this();
+                instance._loadFromRow(row);
+                return instance;
+            },
+            'get',
             // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
-            const instance = new this();
-            instance._loadFromRow(row);
-            return instance;
-        } catch (error) {
-            if (error instanceof EntityNotFoundError) {
-                throw error;
-            }
-            // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
-            logger.error(`Database error in ${this.name}.get()`, error);
-            // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
-            throw new DatabaseError(`Failed to fetch ${this.name}`, error as Error);
-        }
+            this.name,
+            logger
+        );
     }
 
     static async find<T extends BaseEntity>(
         this: new () => T,
         conditions: Record<string, SQLQueryBindings>
     ): Promise<T[]> {
-        const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
-        const logger = typeBunContainer.resolve<DbLogger>('DbLogger');
-
+        const { metadataContainer, logger } = resolveDependencies();
         // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
-        const tableName = metadataContainer.getTableName(this);
+        const { tableName } = getEntityMetadata(this, metadataContainer);
+
         const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
         const { sql, params } = queryBuilder.select(tableName, conditions);
 
         logger.debug(`Executing query: ${sql}`, { params });
 
-        try {
-            const rows = BaseEntity._executeQuery<Record<string, unknown>[]>(sql, params, 'all');
-            return rows.map((row) => {
-                // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
-                const instance = new this();
-                instance._loadFromRow(row);
-                return instance;
-            });
-        } catch (error) {
+        return executeWithErrorHandling(
+            () => {
+                const rows = BaseEntity._executeQuery<Record<string, unknown>[]>(sql, params, 'all');
+                return rows.map((row) => {
+                    // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
+                    const instance = new this();
+                    instance._loadFromRow(row);
+                    return instance;
+                });
+            },
+            'find',
             // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
-            logger.error(`Database error in ${this.name}.find()`, error);
-            // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
-            throw new DatabaseError(`Failed to fetch ${this.name} records`, error as Error);
-        }
+            this.name,
+            logger
+        );
     }
 
     static async findFirst<T extends BaseEntity>(
         this: new () => T,
         conditions: Record<string, SQLQueryBindings>
     ): Promise<T | null> {
-        const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
-        const logger = typeBunContainer.resolve<DbLogger>('DbLogger');
-
+        const { metadataContainer, logger } = resolveDependencies();
         // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
-        const tableName = metadataContainer.getTableName(this);
+        const { tableName } = getEntityMetadata(this, metadataContainer);
+
         const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
         const { sql, params } = queryBuilder.select(tableName, conditions, 1);
 
         logger.debug(`Executing query: ${sql}`, { params });
 
-        try {
-            const row = BaseEntity._executeQuery<Record<string, unknown> | undefined>(sql, params, 'get');
-            if (!row) {
-                return null;
-            }
+        return executeWithErrorHandling(
+            () => {
+                const row = BaseEntity._executeQuery<Record<string, unknown> | undefined>(sql, params, 'get');
+                if (!row) {
+                    return null;
+                }
 
+                // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
+                const instance = new this();
+                instance._loadFromRow(row);
+                return instance;
+            },
+            'findFirst',
             // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
-            const instance = new this();
-            instance._loadFromRow(row);
-            return instance;
-        } catch (error) {
-            // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
-            logger.error(`Database error in ${this.name}.findFirst()`, error);
-            // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
-            throw new DatabaseError(`Failed to fetch ${this.name} record`, error as Error);
-        }
+            this.name,
+            logger
+        );
     }
 
     static async count(conditions?: Record<string, SQLQueryBindings>): Promise<number> {
-        const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
-        const logger = typeBunContainer.resolve<DbLogger>('DbLogger');
-
+        const { metadataContainer, logger } = resolveDependencies();
         // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
-        const tableName = metadataContainer.getTableName(this as unknown as EntityConstructor);
+        const { tableName } = getEntityMetadata(this as unknown as EntityConstructor, metadataContainer);
+
         const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
         const { sql, params } = queryBuilder.count(tableName, conditions);
 
         logger.debug(`Executing query: ${sql}`, { params });
 
-        try {
-            const result = BaseEntity._executeQuery<{ count: number }>(sql, params, 'get');
-            return result.count;
-        } catch (error) {
+        return executeWithErrorHandling(
+            () => {
+                const result = BaseEntity._executeQuery<{ count: number }>(sql, params, 'get');
+                return result.count;
+            },
+            'count',
             // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
-            logger.error(`Database error in ${this.name}.count()`, error);
-            // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
-            throw new DatabaseError(`Failed to count ${this.name} records`, error as Error);
-        }
+            this.name,
+            logger
+        );
     }
 
     static async exists(conditions: Record<string, SQLQueryBindings>): Promise<boolean> {
@@ -247,27 +244,13 @@ export abstract class BaseEntity {
             throw new Error('Cannot remove unsaved entity');
         }
 
-        const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
-        const logger = typeBunContainer.resolve<DbLogger>('DbLogger');
+        const { metadataContainer, logger } = resolveDependencies();
+        const { tableName, primaryColumns } = getEntityMetadata(
+            this.constructor as unknown as EntityConstructor,
+            metadataContainer
+        );
 
-        const tableName = metadataContainer.getTableName(this.constructor as unknown as EntityConstructor);
-        const primaryColumns = metadataContainer.getPrimaryColumns(this.constructor as unknown as EntityConstructor);
-
-        const conditions: Record<string, SQLQueryBindings> = {};
-        for (const primaryColumn of primaryColumns) {
-            const value = (this as Record<string, unknown>)[primaryColumn.propertyName];
-            if (
-                value !== undefined &&
-                value !== null &&
-                (typeof value === 'string' ||
-                    typeof value === 'number' ||
-                    typeof value === 'boolean' ||
-                    typeof value === 'bigint' ||
-                    value instanceof Uint8Array)
-            ) {
-                conditions[primaryColumn.propertyName] = value as SQLQueryBindings;
-            }
-        }
+        const conditions = buildPrimaryKeyConditions(this, primaryColumns);
 
         const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
         const { sql, params } = queryBuilder.delete(tableName, conditions);
@@ -389,29 +372,11 @@ export abstract class BaseEntity {
             }
         }
 
-        const data: Record<string, SQLQueryBindings> = {};
+        const data = buildDataObject(this, columns);
+        // Remove auto-increment columns
         for (const [propertyName, metadata] of columns) {
-            // Skip auto-increment columns
             if (metadata.isGenerated && metadata.generationStrategy === 'increment') {
-                continue;
-            }
-
-            const value = (this as Record<string, unknown>)[propertyName];
-            if (value !== undefined) {
-                // Convert Date to ISO string for storage
-                const convertedValue = value instanceof Date ? value.toISOString() : value;
-                // Only include values that are valid SQLQueryBindings
-                if (
-                    convertedValue !== undefined &&
-                    convertedValue !== null &&
-                    (typeof convertedValue === 'string' ||
-                        typeof convertedValue === 'number' ||
-                        typeof convertedValue === 'boolean' ||
-                        typeof convertedValue === 'bigint' ||
-                        convertedValue instanceof Uint8Array)
-                ) {
-                    data[propertyName] = convertedValue as SQLQueryBindings;
-                }
+                delete data[propertyName];
             }
         }
 
@@ -454,44 +419,10 @@ export abstract class BaseEntity {
         const primaryColumns = metadataContainer.getPrimaryColumns(this.constructor as unknown as EntityConstructor);
 
         // Build data object excluding primary keys
-        const data: Record<string, SQLQueryBindings> = {};
-        for (const [propertyName, metadata] of columns) {
-            if (!metadata.isPrimary) {
-                const value = (this as Record<string, unknown>)[propertyName];
-                if (value !== undefined) {
-                    const convertedValue = value instanceof Date ? value.toISOString() : value;
-                    // Only include values that are valid SQLQueryBindings
-                    if (
-                        convertedValue !== undefined &&
-                        convertedValue !== null &&
-                        (typeof convertedValue === 'string' ||
-                            typeof convertedValue === 'number' ||
-                            typeof convertedValue === 'boolean' ||
-                            typeof convertedValue === 'bigint' ||
-                            convertedValue instanceof Uint8Array)
-                    ) {
-                        data[propertyName] = convertedValue as SQLQueryBindings;
-                    }
-                }
-            }
-        }
+        const data = buildDataObject(this, columns, true);
 
         // Build conditions from primary keys
-        const conditions: Record<string, SQLQueryBindings> = {};
-        for (const primaryColumn of primaryColumns) {
-            const value = (this as Record<string, unknown>)[primaryColumn.propertyName];
-            if (
-                value !== undefined &&
-                value !== null &&
-                (typeof value === 'string' ||
-                    typeof value === 'number' ||
-                    typeof value === 'boolean' ||
-                    typeof value === 'bigint' ||
-                    value instanceof Uint8Array)
-            ) {
-                conditions[primaryColumn.propertyName] = value as SQLQueryBindings;
-            }
-        }
+        const conditions = buildPrimaryKeyConditions(this, primaryColumns);
 
         const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
         const { sql, params } = queryBuilder.update(tableName, data, conditions);
