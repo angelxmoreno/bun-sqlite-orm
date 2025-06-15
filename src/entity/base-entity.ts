@@ -1,4 +1,4 @@
-import type { Database } from 'bun:sqlite';
+import type { Database, Statement } from 'bun:sqlite';
 import { validate } from 'class-validator';
 import { typeBunContainer } from '../container';
 import { DatabaseError, EntityNotFoundError, ValidationError } from '../errors';
@@ -10,6 +10,19 @@ import type { DbLogger, EntityConstructor, SQLQueryBindings } from '../types';
 export abstract class BaseEntity {
     private _isNew = true;
     private _originalValues: Record<string, unknown> = {};
+
+    // Private helper for executing queries with proper statement management
+    private static _executeQuery<T>(sql: string, params: unknown[], method: 'get' | 'all' | 'run'): T {
+        const db = typeBunContainer.resolve<Database>('DatabaseConnection');
+        const stmt: Statement = db.prepare(sql);
+
+        try {
+            return stmt[method](...(params as SQLQueryBindings[])) as T;
+        } finally {
+            // Always finalize the statement to prevent memory leaks
+            stmt.finalize();
+        }
+    }
 
     // Static methods
     static async create<T extends BaseEntity>(this: new () => T, data: Partial<T>): Promise<T> {
@@ -29,7 +42,6 @@ export abstract class BaseEntity {
     }
 
     static async get<T extends BaseEntity>(this: new () => T, id: unknown): Promise<T> {
-        const db = typeBunContainer.resolve<Database>('DatabaseConnection');
         const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
         const logger = typeBunContainer.resolve<DbLogger>('DbLogger');
 
@@ -50,7 +62,7 @@ export abstract class BaseEntity {
         logger.debug(`Executing query: ${sql}`, { params });
 
         try {
-            const row = db.query(sql).get(...(params as SQLQueryBindings[]));
+            const row = BaseEntity._executeQuery<Record<string, unknown> | undefined>(sql, params, 'get');
             if (!row) {
                 // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
                 throw new EntityNotFoundError(this.name, { [primaryColumn.propertyName]: id });
@@ -58,7 +70,7 @@ export abstract class BaseEntity {
 
             // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
             const instance = new this();
-            instance._loadFromRow(row as Record<string, unknown>);
+            instance._loadFromRow(row);
             return instance;
         } catch (error) {
             if (error instanceof EntityNotFoundError) {
@@ -72,7 +84,6 @@ export abstract class BaseEntity {
     }
 
     static async find<T extends BaseEntity>(this: new () => T, conditions: Record<string, unknown>): Promise<T[]> {
-        const db = typeBunContainer.resolve<Database>('DatabaseConnection');
         const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
         const logger = typeBunContainer.resolve<DbLogger>('DbLogger');
 
@@ -84,8 +95,8 @@ export abstract class BaseEntity {
         logger.debug(`Executing query: ${sql}`, { params });
 
         try {
-            const rows = db.query(sql).all(...(params as SQLQueryBindings[]));
-            return (rows as Record<string, unknown>[]).map((row) => {
+            const rows = BaseEntity._executeQuery<Record<string, unknown>[]>(sql, params, 'all');
+            return rows.map((row) => {
                 // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
                 const instance = new this();
                 instance._loadFromRow(row);
@@ -111,7 +122,6 @@ export abstract class BaseEntity {
     }
 
     static async count(conditions?: Record<string, unknown>): Promise<number> {
-        const db = typeBunContainer.resolve<Database>('DatabaseConnection');
         const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
         const logger = typeBunContainer.resolve<DbLogger>('DbLogger');
 
@@ -123,7 +133,7 @@ export abstract class BaseEntity {
         logger.debug(`Executing query: ${sql}`, { params });
 
         try {
-            const result = db.query(sql).get(...(params as SQLQueryBindings[])) as { count: number };
+            const result = BaseEntity._executeQuery<{ count: number }>(sql, params, 'get');
             return result.count;
         } catch (error) {
             // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
@@ -140,7 +150,6 @@ export abstract class BaseEntity {
     }
 
     static async deleteAll(conditions: Record<string, unknown>): Promise<number> {
-        const db = typeBunContainer.resolve<Database>('DatabaseConnection');
         const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
         const logger = typeBunContainer.resolve<DbLogger>('DbLogger');
 
@@ -152,7 +161,7 @@ export abstract class BaseEntity {
         logger.debug(`Executing query: ${sql}`, { params });
 
         try {
-            const result = db.query(sql).run(...(params as SQLQueryBindings[]));
+            const result = BaseEntity._executeQuery<{ changes: number }>(sql, params, 'run');
             // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
             logger.info(`Deleted ${result.changes} ${this.name} records`);
             return result.changes;
@@ -165,7 +174,6 @@ export abstract class BaseEntity {
     }
 
     static async updateAll(data: Record<string, unknown>, conditions: Record<string, unknown>): Promise<number> {
-        const db = typeBunContainer.resolve<Database>('DatabaseConnection');
         const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
         const logger = typeBunContainer.resolve<DbLogger>('DbLogger');
 
@@ -177,15 +185,15 @@ export abstract class BaseEntity {
         logger.debug(`Executing query: ${sql}`, { params });
 
         try {
-            const result = db.query(sql).run(...(params as SQLQueryBindings[]));
+            const result = BaseEntity._executeQuery<{ changes: number }>(sql, params, 'run');
             // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
             logger.info(`Updated ${result.changes} ${this.name} records`);
             return result.changes;
         } catch (error) {
             // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
-            logger.error(`Database error in ${this.constructor.name}.updateAll()`, error);
+            logger.error(`Database error in ${this.name}.updateAll()`, error);
             // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
-            throw new DatabaseError(`Failed to update ${this.constructor.name} records`, error as Error);
+            throw new DatabaseError(`Failed to update ${this.name} records`, error as Error);
         }
     }
 
@@ -210,7 +218,6 @@ export abstract class BaseEntity {
             throw new Error('Cannot remove unsaved entity');
         }
 
-        const db = typeBunContainer.resolve<Database>('DatabaseConnection');
         const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
         const logger = typeBunContainer.resolve<DbLogger>('DbLogger');
 
@@ -228,7 +235,7 @@ export abstract class BaseEntity {
         logger.debug(`Executing query: ${sql}`, { params });
 
         try {
-            db.query(sql).run(...(params as SQLQueryBindings[]));
+            BaseEntity._executeQuery<{ changes: number }>(sql, params, 'run');
             logger.info(`Removed ${this.constructor.name} entity`);
             this._isNew = true;
         } catch (error) {
@@ -323,7 +330,6 @@ export abstract class BaseEntity {
     }
 
     private async _insert(): Promise<void> {
-        const db = typeBunContainer.resolve<Database>('DatabaseConnection');
         const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
         const logger = typeBunContainer.resolve<DbLogger>('DbLogger');
 
@@ -363,7 +369,11 @@ export abstract class BaseEntity {
         logger.debug(`Executing query: ${sql}`, { params });
 
         try {
-            const result = db.query(sql).run(...(params as SQLQueryBindings[]));
+            const result = BaseEntity._executeQuery<{ lastInsertRowid: number | bigint; changes: number }>(
+                sql,
+                params,
+                'run'
+            );
 
             // Set auto-generated ID if applicable
             const primaryColumns = metadataContainer.getPrimaryColumns(
@@ -384,7 +394,6 @@ export abstract class BaseEntity {
     }
 
     private async _update(): Promise<void> {
-        const db = typeBunContainer.resolve<Database>('DatabaseConnection');
         const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
         const logger = typeBunContainer.resolve<DbLogger>('DbLogger');
 
@@ -415,7 +424,7 @@ export abstract class BaseEntity {
         logger.debug(`Executing query: ${sql}`, { params });
 
         try {
-            db.query(sql).run(...(params as SQLQueryBindings[]));
+            BaseEntity._executeQuery<{ changes: number }>(sql, params, 'run');
             this._captureOriginalValues();
             logger.info(`Updated ${this.constructor.name} entity`);
         } catch (error) {

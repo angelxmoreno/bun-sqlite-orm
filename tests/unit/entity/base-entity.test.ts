@@ -21,9 +21,14 @@ class AnotherEntity extends BaseEntity {
 }
 
 describe('BaseEntity', () => {
-    let mockDb: {
+    type MockDb = {
         query: ReturnType<typeof mock>;
+        prepare: ReturnType<typeof mock>;
+        setStatementReturn: (method: 'get' | 'all' | 'run', returnValue: unknown) => void;
+        setStatementThrow: (method: 'get' | 'all' | 'run', error: Error) => void;
     };
+
+    let mockDb: MockDb;
     let mockMetadataContainer: {
         getTableName: ReturnType<typeof mock>;
         getColumns: ReturnType<typeof mock>;
@@ -53,7 +58,42 @@ describe('BaseEntity', () => {
             all: mock(),
             run: mock(() => ({ changes: 1, lastInsertRowid: 1 })),
         }));
-        mockDb = { query: mockQuery };
+
+        // Create a reusable mock statement factory
+        const createMockStatement = (overrides = {}) => ({
+            get: mock(() => ({ id: 1, name: 'Test', email: 'test@example.com' })),
+            all: mock(() => [{ id: 1, name: 'Test', email: 'test@example.com' }]),
+            run: mock(() => ({ changes: 1, lastInsertRowid: 1 })),
+            finalize: mock(),
+            ...overrides,
+        });
+
+        const mockStatement = createMockStatement();
+        const mockPrepare = mock(() => mockStatement);
+
+        // Helper functions to easily mock different statement behaviors
+        const setStatementReturn = (method: 'get' | 'all' | 'run', returnValue: unknown) => {
+            const newStatement = createMockStatement({
+                [method]: mock(() => returnValue),
+            });
+            mockPrepare.mockReturnValue(newStatement);
+        };
+
+        const setStatementThrow = (method: 'get' | 'all' | 'run', error: Error) => {
+            const newStatement = createMockStatement({
+                [method]: mock(() => {
+                    throw error;
+                }),
+            });
+            mockPrepare.mockReturnValue(newStatement);
+        };
+
+        mockDb = {
+            query: mockQuery,
+            prepare: mockPrepare,
+            setStatementReturn,
+            setStatementThrow,
+        };
 
         // Mock MetadataContainer
         mockMetadataContainer = {
@@ -150,8 +190,7 @@ describe('BaseEntity', () => {
 
         describe('get', () => {
             test('should retrieve entity by ID', async () => {
-                const mockGet = mock(() => ({ id: 1, name: 'Test User', email: 'test@example.com' }));
-                mockDb.query.mockReturnValue({ get: mockGet });
+                mockDb.setStatementReturn('get', { id: 1, name: 'Test User', email: 'test@example.com' });
 
                 const entity = await TestEntity.get(1);
 
@@ -162,8 +201,7 @@ describe('BaseEntity', () => {
             });
 
             test('should throw EntityNotFoundError when entity not found', async () => {
-                const mockGet = mock(() => null);
-                mockDb.query.mockReturnValue({ get: mockGet });
+                mockDb.setStatementReturn('get', null);
 
                 expect(TestEntity.get(999)).rejects.toThrow(EntityNotFoundError);
             });
@@ -175,10 +213,7 @@ describe('BaseEntity', () => {
             });
 
             test('should throw DatabaseError on database failure', async () => {
-                const mockGet = mock(() => {
-                    throw new Error('Database connection failed');
-                });
-                mockDb.query.mockReturnValue({ get: mockGet });
+                mockDb.setStatementThrow('get', new Error('Database connection failed'));
 
                 expect(TestEntity.get(1)).rejects.toThrow(DatabaseError);
             });
@@ -186,11 +221,10 @@ describe('BaseEntity', () => {
 
         describe('find', () => {
             test('should find entities with conditions', async () => {
-                const mockAll = mock(() => [
+                mockDb.setStatementReturn('all', [
                     { id: 1, name: 'User 1', email: 'user1@example.com' },
                     { id: 2, name: 'User 2', email: 'user2@example.com' },
                 ]);
-                mockDb.query.mockReturnValue({ all: mockAll });
 
                 const entities = await TestEntity.find({ name: 'User' });
 
@@ -201,8 +235,7 @@ describe('BaseEntity', () => {
             });
 
             test('should return empty array when no entities found', async () => {
-                const mockAll = mock(() => []);
-                mockDb.query.mockReturnValue({ all: mockAll });
+                mockDb.setStatementReturn('all', []);
 
                 const entities = await TestEntity.find({ name: 'NonExistent' });
 
@@ -210,10 +243,7 @@ describe('BaseEntity', () => {
             });
 
             test('should throw DatabaseError on database failure', async () => {
-                const mockAll = mock(() => {
-                    throw new Error('Query failed');
-                });
-                mockDb.query.mockReturnValue({ all: mockAll });
+                mockDb.setStatementThrow('all', new Error('Query failed'));
 
                 expect(TestEntity.find({ name: 'Test' })).rejects.toThrow(DatabaseError);
             });
@@ -221,8 +251,7 @@ describe('BaseEntity', () => {
 
         describe('findFirst', () => {
             test('should return first entity when found', async () => {
-                const mockAll = mock(() => [{ id: 1, name: 'User 1', email: 'user1@example.com' }]);
-                mockDb.query.mockReturnValue({ all: mockAll });
+                mockDb.setStatementReturn('all', [{ id: 1, name: 'User 1', email: 'user1@example.com' }]);
 
                 const entity = await TestEntity.findFirst({ name: 'User 1' });
 
@@ -231,8 +260,7 @@ describe('BaseEntity', () => {
             });
 
             test('should return null when no entity found', async () => {
-                const mockAll = mock(() => []);
-                mockDb.query.mockReturnValue({ all: mockAll });
+                mockDb.setStatementReturn('all', []);
 
                 const entity = await TestEntity.findFirst({ name: 'NonExistent' });
 
@@ -242,8 +270,7 @@ describe('BaseEntity', () => {
 
         describe('count', () => {
             test('should count entities without conditions', async () => {
-                const mockGet = mock(() => ({ count: 5 }));
-                mockDb.query.mockReturnValue({ get: mockGet });
+                mockDb.setStatementReturn('get', { count: 5 });
 
                 const count = await TestEntity.count();
 
@@ -251,8 +278,7 @@ describe('BaseEntity', () => {
             });
 
             test('should count entities with conditions', async () => {
-                const mockGet = mock(() => ({ count: 2 }));
-                mockDb.query.mockReturnValue({ get: mockGet });
+                mockDb.setStatementReturn('get', { count: 2 });
 
                 const count = await TestEntity.count({ name: 'User' });
 
@@ -260,10 +286,7 @@ describe('BaseEntity', () => {
             });
 
             test('should throw DatabaseError on database failure', async () => {
-                const mockGet = mock(() => {
-                    throw new Error('Count failed');
-                });
-                mockDb.query.mockReturnValue({ get: mockGet });
+                mockDb.setStatementThrow('get', new Error('Count failed'));
 
                 expect(TestEntity.count()).rejects.toThrow(DatabaseError);
             });
@@ -271,8 +294,7 @@ describe('BaseEntity', () => {
 
         describe('exists', () => {
             test('should return true when entities exist', async () => {
-                const mockGet = mock(() => ({ count: 1 }));
-                mockDb.query.mockReturnValue({ get: mockGet });
+                mockDb.setStatementReturn('get', { count: 1 });
 
                 const exists = await TestEntity.exists({ name: 'User' });
 
@@ -291,8 +313,7 @@ describe('BaseEntity', () => {
 
         describe('deleteAll', () => {
             test('should delete entities and return count', async () => {
-                const mockRun = mock(() => ({ changes: 3 }));
-                mockDb.query.mockReturnValue({ run: mockRun });
+                mockDb.setStatementReturn('run', { changes: 3 });
 
                 const deletedCount = await TestEntity.deleteAll({ name: 'ToDelete' });
 
@@ -300,10 +321,7 @@ describe('BaseEntity', () => {
             });
 
             test('should throw DatabaseError on database failure', async () => {
-                const mockRun = mock(() => {
-                    throw new Error('Delete failed');
-                });
-                mockDb.query.mockReturnValue({ run: mockRun });
+                mockDb.setStatementThrow('run', new Error('Delete failed'));
 
                 expect(TestEntity.deleteAll({ name: 'Test' })).rejects.toThrow(DatabaseError);
             });
@@ -311,8 +329,7 @@ describe('BaseEntity', () => {
 
         describe('updateAll', () => {
             test('should update entities and return count', async () => {
-                const mockRun = mock(() => ({ changes: 2 }));
-                mockDb.query.mockReturnValue({ run: mockRun });
+                mockDb.setStatementReturn('run', { changes: 2 });
 
                 const updatedCount = await TestEntity.updateAll({ name: 'Updated' }, { id: 1 });
 
@@ -320,10 +337,7 @@ describe('BaseEntity', () => {
             });
 
             test('should throw DatabaseError on database failure', async () => {
-                const mockRun = mock(() => {
-                    throw new Error('Update failed');
-                });
-                mockDb.query.mockReturnValue({ run: mockRun });
+                mockDb.setStatementThrow('run', new Error('Update failed'));
 
                 expect(TestEntity.updateAll({ name: 'Test' }, { id: 1 })).rejects.toThrow(DatabaseError);
             });
@@ -444,10 +458,7 @@ describe('BaseEntity', () => {
             });
 
             test('should throw DatabaseError on insert failure', async () => {
-                const mockRun = mock(() => {
-                    throw new Error('Insert failed');
-                });
-                mockDb.query.mockReturnValue({ run: mockRun });
+                mockDb.setStatementThrow('run', new Error('Insert failed'));
 
                 expect(entity.save()).rejects.toThrow(DatabaseError);
                 expect(mockLogger.error).toHaveBeenCalled();
@@ -491,10 +502,7 @@ describe('BaseEntity', () => {
                 entity.id = 1;
                 (entity as unknown as { _isNew: boolean })._isNew = false;
 
-                const mockRun = mock(() => {
-                    throw new Error('Delete failed');
-                });
-                mockDb.query.mockReturnValue({ run: mockRun });
+                mockDb.setStatementThrow('run', new Error('Delete failed'));
 
                 expect(entity.remove()).rejects.toThrow(DatabaseError);
             });
@@ -505,8 +513,11 @@ describe('BaseEntity', () => {
                 entity.id = 1;
                 (entity as unknown as { _isNew: boolean })._isNew = false;
 
-                const mockGet = mock(() => ({ id: 1, name: 'Reloaded Name', email: 'reloaded@example.com' }));
-                mockDb.query.mockReturnValue({ get: mockGet });
+                mockDb.setStatementReturn('get', {
+                    id: 1,
+                    name: 'Reloaded Name',
+                    email: 'reloaded@example.com',
+                });
 
                 await entity.reload();
 
