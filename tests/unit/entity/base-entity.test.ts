@@ -251,7 +251,7 @@ describe('BaseEntity', () => {
 
         describe('findFirst', () => {
             test('should return first entity when found', async () => {
-                mockDb.setStatementReturn('all', [{ id: 1, name: 'User 1', email: 'user1@example.com' }]);
+                mockDb.setStatementReturn('get', { id: 1, name: 'User 1', email: 'user1@example.com' });
 
                 const entity = await TestEntity.findFirst({ name: 'User 1' });
 
@@ -260,7 +260,7 @@ describe('BaseEntity', () => {
             });
 
             test('should return null when no entity found', async () => {
-                mockDb.setStatementReturn('all', []);
+                mockDb.setStatementReturn('get', undefined);
 
                 const entity = await TestEntity.findFirst({ name: 'NonExistent' });
 

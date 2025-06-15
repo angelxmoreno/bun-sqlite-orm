@@ -99,7 +99,7 @@ describe('Statement Fix Verification', () => {
             for (let i = 0; i < 20; i++) {
                 // Different query patterns that create different SQL statements
                 queryOperations.push(TestUser.find({ age: 20 + i }));
-                queryOperations.push(TestUser.count({ age: { gte: 20 + i } }));
+                queryOperations.push(TestUser.count({ age: 20 + i }));
                 queryOperations.push(TestUser.exists({ name: `User ${i}` }));
 
                 if (i < 10) {
@@ -136,8 +136,8 @@ describe('Statement Fix Verification', () => {
 
             // Mixed query operations
             const queries = [
-                () => TestUser.find({ age: { gte: 25 } }),
-                () => TestUser.find({ age: { lte: 35 } }),
+                () => TestUser.find({ age: 25 }),
+                () => TestUser.find({ age: 35 }),
                 () => TestUser.count({}),
                 () => TestUser.exists({ age: 18 }),
                 () => TestUser.findFirst({ name: 'Test User 10' }),
@@ -165,7 +165,7 @@ describe('Statement Fix Verification', () => {
             await TestUser.deleteAll({ age: 99 });
 
             // Individual deletes
-            const remaining = await TestUser.find({ age: { lt: 90 } });
+            const remaining = await TestUser.find({ age: 89 });
             const deletePromises = remaining.slice(0, 5).map((user) => user.remove());
             await Promise.all(deletePromises);
 

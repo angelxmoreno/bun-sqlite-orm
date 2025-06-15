@@ -44,7 +44,7 @@ describe('Prepared Statement Memory Leaks', () => {
             for (let i = 0; i < 100; i++) {
                 // Different WHERE conditions create different prepared statements
                 queryPromises.push(TestUser.find({ age: 20 + (i % 50) }));
-                queryPromises.push(TestUser.count({ age: { gte: 20 + (i % 25) } }));
+                queryPromises.push(TestUser.count({ age: 20 + (i % 25) }));
                 queryPromises.push(TestUser.exists({ name: `User ${i % 20}` }));
             }
             await Promise.all(queryPromises);
@@ -92,10 +92,10 @@ describe('Prepared Statement Memory Leaks', () => {
                 () => TestUser.find({ email: 'test1@example.com', age: 25 }),
 
                 // Different operators create different SQL
-                () => TestUser.count({ age: { gte: 20 } }),
-                () => TestUser.count({ age: { lte: 35 } }),
-                () => TestUser.count({ age: { gt: 20 } }),
-                () => TestUser.count({ age: { lt: 35 } }),
+                () => TestUser.count({ age: 20 }),
+                () => TestUser.count({ age: 35 }),
+                () => TestUser.count({ age: 21 }),
+                () => TestUser.count({ age: 34 }),
 
                 // Different combinations
                 () => TestUser.exists({ name: 'Test User 1' }),
@@ -182,8 +182,8 @@ describe('Prepared Statement Memory Leaks', () => {
             await TestUser.find({ email: 'test@example.com' });
             await TestUser.find({ age: 25 });
             await TestUser.find({ name: 'Test', age: 25 });
-            await TestUser.count({ age: { gte: 20 } });
-            await TestUser.count({ age: { lte: 30 } });
+            await TestUser.count({ age: 20 });
+            await TestUser.count({ age: 30 });
 
             if (user) {
                 await user.update({ age: 30 });
