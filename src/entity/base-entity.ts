@@ -12,12 +12,12 @@ export abstract class BaseEntity {
     private _originalValues: Record<string, unknown> = {};
 
     // Private helper for executing queries with proper statement management
-    private static _executeQuery<T>(sql: string, params: unknown[], method: 'get' | 'all' | 'run'): T {
+    private static _executeQuery<T>(sql: string, params: SQLQueryBindings[], method: 'get' | 'all' | 'run'): T {
         const db = typeBunContainer.resolve<Database>('DatabaseConnection');
         const stmt: Statement = db.prepare(sql);
 
         try {
-            return stmt[method](...(params as SQLQueryBindings[])) as T;
+            return stmt[method](...params) as T;
         } finally {
             // Always finalize the statement to prevent memory leaks
             stmt.finalize();
