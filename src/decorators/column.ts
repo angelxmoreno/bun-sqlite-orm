@@ -28,6 +28,7 @@ export function Column(options: ColumnOptions = {}) {
             nullable: isNullable,
             unique: options.unique || false,
             default: options.default,
+            sqlDefault: options.sqlDefault,
             isPrimary: false,
             isGenerated: false,
         };

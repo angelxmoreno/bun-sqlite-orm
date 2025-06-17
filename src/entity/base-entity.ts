@@ -381,7 +381,12 @@ export abstract class BaseEntity {
                     (this as Record<string, unknown>)[propertyName] = crypto.randomUUID();
                 }
             } else if (metadata.default !== undefined && typeof metadata.default === 'function') {
-                if ((this as Record<string, unknown>)[propertyName] === undefined) {
+                // Only apply JS function defaults if no SQL default is defined
+                // SQL defaults are handled by the database automatically
+                if (
+                    metadata.sqlDefault === undefined &&
+                    (this as Record<string, unknown>)[propertyName] === undefined
+                ) {
                     (this as Record<string, unknown>)[propertyName] = metadata.default();
                 }
             }
@@ -414,6 +419,25 @@ export abstract class BaseEntity {
             const autoIncrementColumn = primaryColumns.find((col) => col.generationStrategy === 'increment');
             if (autoIncrementColumn) {
                 (this as Record<string, unknown>)[autoIncrementColumn.propertyName] = result.lastInsertRowid;
+            }
+
+            // Reload entity to get SQL defaults that were applied by the database
+            const columnsWithSqlDefaults = Array.from(columns.values()).filter((col) => col.sqlDefault !== undefined);
+            if (columnsWithSqlDefaults.length > 0) {
+                // Build conditions for the reload using primary key(s)
+                const conditions = buildPrimaryKeyConditions(this, primaryColumns);
+
+                if (Object.keys(conditions).length > 0) {
+                    const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
+                    const { sql, params } = queryBuilder.select(tableName, conditions, 1);
+
+                    logger.debug(`Reloading entity to get SQL defaults: ${sql}`, { params });
+
+                    const row = BaseEntity._executeQuery<Record<string, unknown> | undefined>(sql, params, 'get');
+                    if (row) {
+                        this._loadFromRow(row);
+                    }
+                }
             }
 
             this._isNew = false;

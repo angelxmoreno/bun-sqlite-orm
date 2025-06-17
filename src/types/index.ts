@@ -17,6 +17,7 @@ export interface ColumnOptions {
     nullable?: boolean;
     unique?: boolean;
     default?: unknown;
+    sqlDefault?: string;
 }
 
 export interface EntityMetadata {
@@ -32,6 +33,7 @@ export interface ColumnMetadata {
     nullable: boolean;
     unique: boolean;
     default?: unknown;
+    sqlDefault?: string;
     isPrimary: boolean;
     isGenerated: boolean;
     generationStrategy?: 'increment' | 'uuid';

@@ -74,8 +74,8 @@ export class User extends BaseEntity {
     @Column({ type: 'integer', nullable: true })
     age?: number;
 
-    @Column({ type: 'text', default: () => new Date().toISOString() })
-    createdAt!: string;
+    @Column({ sqlDefault: 'CURRENT_TIMESTAMP' })
+    createdAt!: Date;
 }
 ```
 
@@ -160,7 +160,8 @@ await User.deleteAll({ status: 'inactive' });
     type: 'text' | 'integer' | 'real' | 'blob',  // SQLite data types
     nullable?: boolean,        // Allow NULL values (default: false)
     unique?: boolean,          // Add unique constraint (default: false)
-    default?: any | (() => any) // Default value or function
+    default?: any | (() => any), // JavaScript default value or function
+    sqlDefault?: string        // SQL default expression (e.g., 'CURRENT_TIMESTAMP')
 })
 ```
 
@@ -267,12 +268,43 @@ export class Post extends BaseEntity {
     @Column({ type: 'integer', default: 0 })
     viewCount!: number;
 
-    @Column({ type: 'text', default: () => new Date().toISOString() })
-    publishedAt!: string;
+    // SQL default - handled by SQLite
+    @Column({ sqlDefault: 'CURRENT_TIMESTAMP' })
+    createdAt!: Date;
+
+    // JavaScript default - handled by application
+    @Column({ default: () => new Date() })
+    updatedAt!: Date;
 
     @Column({ type: 'text', default: () => JSON.stringify([]) })
     tags!: string; // Store JSON as text
 }
+```
+
+#### Default Value Options
+
+**SQL Defaults** (`sqlDefault`): Handled by SQLite in the database
+```typescript
+@Column({ sqlDefault: 'CURRENT_TIMESTAMP' })
+createdAt!: Date;
+
+@Column({ sqlDefault: '0' })
+score!: number;
+
+@Column({ sqlDefault: "'active'" }) // Note the quotes for string literals
+status!: string;
+```
+
+**JavaScript Defaults** (`default`): Handled by the application
+```typescript
+@Column({ default: () => new Date() })
+updatedAt!: Date;
+
+@Column({ default: 'pending' })
+status!: string;
+
+@Column({ default: () => Math.random() })
+randomValue!: number;
 ```
 
 ### Error Handling
