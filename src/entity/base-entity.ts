@@ -421,6 +421,12 @@ export abstract class BaseEntity {
         // Build data object excluding primary keys
         const data = buildDataObject(this, columns, true);
 
+        // If no data to update, skip the database call
+        if (Object.keys(data).length === 0) {
+            logger.debug(`No data to update for ${this.constructor.name} entity`);
+            return;
+        }
+
         // Build conditions from primary keys
         const conditions = buildPrimaryKeyConditions(this, primaryColumns);
 

@@ -31,6 +31,10 @@ export function buildSetClause(data: Record<string, SQLQueryBindings>): {
     setClause: string;
     params: SQLQueryBindings[];
 } {
+    if (!data || Object.keys(data).length === 0) {
+        throw new Error('Cannot build SET clause: data object is empty');
+    }
+
     const setClause = Object.keys(data)
         .map((key) => `${key} = ?`)
         .join(', ');
