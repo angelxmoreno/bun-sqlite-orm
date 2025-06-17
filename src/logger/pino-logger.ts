@@ -1,4 +1,4 @@
-import type { DbLogger } from '../types';
+import { BaseLogger } from './base-logger';
 
 export interface PinoLoggerOptions {
     writeToFile?: boolean;
@@ -6,24 +6,15 @@ export interface PinoLoggerOptions {
     level?: 'debug' | 'info' | 'warn' | 'error';
 }
 
-export class PinoDbLogger implements DbLogger {
+export class PinoDbLogger extends BaseLogger {
     constructor(private options: PinoLoggerOptions = {}) {
+        super();
         console.warn('PinoDbLogger is not fully implemented yet. Install pino as a peer dependency.');
     }
 
-    debug(message: string, meta?: unknown): void {
-        console.debug(`[DEBUG] ${message}`, meta || '');
-    }
-
-    info(message: string, meta?: unknown): void {
-        console.info(`[INFO] ${message}`, meta || '');
-    }
-
-    warn(message: string, meta?: unknown): void {
-        console.warn(`[WARN] ${message}`, meta || '');
-    }
-
-    error(message: string, meta?: unknown): void {
-        console.error(`[ERROR] ${message}`, meta || '');
+    protected log(level: string, message: string, meta?: unknown): void {
+        // Fallback implementation until pino is properly integrated
+        const logMethod = console[level.toLowerCase() as keyof Console] as typeof console.log;
+        logMethod(`[${level}] ${message}`, meta || '');
     }
 }

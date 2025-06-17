@@ -34,6 +34,11 @@ export class SqlGenerator {
     }
 
     generateInsert(tableName: string, data: Record<string, unknown>): { sql: string; values: unknown[] } {
+        // Prevent generating invalid SQL with empty data
+        if (!data || Object.keys(data).length === 0) {
+            throw new Error('Cannot perform INSERT with empty data: at least one column value must be provided');
+        }
+
         const columns = Object.keys(data);
         const placeholders = columns.map(() => '?').join(', ');
         const values = Object.values(data);

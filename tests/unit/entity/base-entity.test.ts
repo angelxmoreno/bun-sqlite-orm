@@ -212,6 +212,18 @@ describe('BaseEntity', () => {
                 expect(TestEntity.get(1)).rejects.toThrow('No primary key defined for entity TestEntity');
             });
 
+            test('should throw error for composite primary keys', async () => {
+                const compositePrimaryColumns = [
+                    { propertyName: 'key1', generationStrategy: undefined },
+                    { propertyName: 'key2', generationStrategy: undefined },
+                ];
+                mockMetadataContainer.getPrimaryColumns.mockReturnValue(compositePrimaryColumns);
+
+                expect(TestEntity.get(1)).rejects.toThrow(
+                    'Entity TestEntity has 2 primary keys. The get() method currently only supports entities with exactly one primary key. Use find() with conditions for composite key entities.'
+                );
+            });
+
             test('should throw DatabaseError on database failure', async () => {
                 mockDb.setStatementThrow('get', new Error('Database connection failed'));
 
@@ -251,7 +263,7 @@ describe('BaseEntity', () => {
 
         describe('findFirst', () => {
             test('should return first entity when found', async () => {
-                mockDb.setStatementReturn('all', [{ id: 1, name: 'User 1', email: 'user1@example.com' }]);
+                mockDb.setStatementReturn('get', { id: 1, name: 'User 1', email: 'user1@example.com' });
 
                 const entity = await TestEntity.findFirst({ name: 'User 1' });
 
@@ -260,7 +272,7 @@ describe('BaseEntity', () => {
             });
 
             test('should return null when no entity found', async () => {
-                mockDb.setStatementReturn('all', []);
+                mockDb.setStatementReturn('get', undefined);
 
                 const entity = await TestEntity.findFirst({ name: 'NonExistent' });
 
@@ -528,6 +540,20 @@ describe('BaseEntity', () => {
                 mockMetadataContainer.getPrimaryColumns.mockReturnValue([]);
 
                 expect(entity.reload()).rejects.toThrow('No primary key defined for entity TestEntity');
+            });
+
+            test('should throw error for composite primary keys', async () => {
+                entity.id = 1;
+                (entity as unknown as { _isNew: boolean })._isNew = false;
+                const compositePrimaryColumns = [
+                    { propertyName: 'key1', generationStrategy: undefined },
+                    { propertyName: 'key2', generationStrategy: undefined },
+                ];
+                mockMetadataContainer.getPrimaryColumns.mockReturnValue(compositePrimaryColumns);
+
+                expect(entity.reload()).rejects.toThrow(
+                    'Entity TestEntity has 2 primary keys. The reload() method currently only supports entities with exactly one primary key.'
+                );
             });
         });
 

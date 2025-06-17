@@ -1,5 +1,6 @@
 import { injectable } from 'tsyringe';
-import type { ColumnMetadata } from '../types';
+import type { ColumnMetadata, SQLQueryBindings } from '../types';
+import { buildInsertClause, buildSetClause, buildWhereClause } from './query-utils';
 
 @injectable()
 export class QueryBuilder {
@@ -35,32 +36,29 @@ export class QueryBuilder {
         return `CREATE TABLE ${tableName} (${columnDefinitions.join(', ')})`;
     }
 
-    insert(tableName: string, data: Record<string, unknown>): { sql: string; params: unknown[] } {
-        const columns = Object.keys(data);
-        const placeholders = columns.map(() => '?').join(', ');
-        const values = Object.values(data);
+    insert(tableName: string, data: Record<string, SQLQueryBindings>): { sql: string; params: SQLQueryBindings[] } {
+        // Prevent generating invalid SQL with empty data
+        if (!data || Object.keys(data).length === 0) {
+            throw new Error('Cannot perform INSERT with empty data: at least one column value must be provided');
+        }
+
+        const { columns, placeholders, params } = buildInsertClause(data);
 
         return {
-            sql: `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${placeholders})`,
-            params: values,
+            sql: `INSERT INTO ${tableName} (${columns}) VALUES (${placeholders})`,
+            params,
         };
     }
 
     select(
         tableName: string,
-        conditions?: Record<string, unknown>,
+        conditions?: Record<string, SQLQueryBindings>,
         limit?: number
-    ): { sql: string; params: unknown[] } {
+    ): { sql: string; params: SQLQueryBindings[] } {
         let sql = `SELECT * FROM ${tableName}`;
-        const params: unknown[] = [];
+        const { whereClause, params } = buildWhereClause(conditions || {});
 
-        if (conditions && Object.keys(conditions).length > 0) {
-            const whereClause = Object.keys(conditions)
-                .map((key) => `${key} = ?`)
-                .join(' AND ');
-            sql += ` WHERE ${whereClause}`;
-            params.push(...Object.values(conditions));
-        }
+        sql += whereClause;
 
         if (limit) {
             sql += ` LIMIT ${limit}`;
@@ -71,53 +69,50 @@ export class QueryBuilder {
 
     update(
         tableName: string,
-        data: Record<string, unknown>,
-        conditions: Record<string, unknown>
-    ): { sql: string; params: unknown[] } {
-        const setClause = Object.keys(data)
-            .map((key) => `${key} = ?`)
-            .join(', ');
-
-        const whereClause = Object.keys(conditions)
-            .map((key) => `${key} = ?`)
-            .join(' AND ');
-
-        return {
-            sql: `UPDATE ${tableName} SET ${setClause} WHERE ${whereClause}`,
-            params: [...Object.values(data), ...Object.values(conditions)],
-        };
-    }
-
-    delete(tableName: string, conditions: Record<string, unknown>): { sql: string; params: unknown[] } {
-        if (Object.keys(conditions).length === 0) {
-            // Delete all records when no conditions provided
-            return {
-                sql: `DELETE FROM ${tableName}`,
-                params: [],
-            };
+        data: Record<string, SQLQueryBindings>,
+        conditions: Record<string, SQLQueryBindings>,
+        allowBulkUpdate = false
+    ): { sql: string; params: SQLQueryBindings[] } {
+        // Prevent accidental full-table updates unless explicitly allowed
+        if (!allowBulkUpdate && (!conditions || Object.keys(conditions).length === 0)) {
+            throw new Error('Cannot perform UPDATE without WHERE conditions: this would update all rows in the table');
         }
 
-        const whereClause = Object.keys(conditions)
-            .map((key) => `${key} = ?`)
-            .join(' AND ');
+        const { setClause, params: setParams } = buildSetClause(data);
+        const { whereClause, params: whereParams } = buildWhereClause(conditions || {});
 
         return {
-            sql: `DELETE FROM ${tableName} WHERE ${whereClause}`,
-            params: Object.values(conditions),
+            sql: `UPDATE ${tableName} SET ${setClause}${whereClause}`,
+            params: [...setParams, ...whereParams],
         };
     }
 
-    count(tableName: string, conditions?: Record<string, unknown>): { sql: string; params: unknown[] } {
+    delete(
+        tableName: string,
+        conditions: Record<string, SQLQueryBindings>,
+        allowBulkDelete = false
+    ): { sql: string; params: SQLQueryBindings[] } {
+        // Prevent accidental full-table deletions unless explicitly allowed
+        if (!allowBulkDelete && (!conditions || Object.keys(conditions).length === 0)) {
+            throw new Error('Cannot perform DELETE without WHERE conditions: this would delete all rows in the table');
+        }
+
+        const { whereClause, params } = buildWhereClause(conditions || {});
+
+        return {
+            sql: `DELETE FROM ${tableName}${whereClause}`,
+            params,
+        };
+    }
+
+    count(
+        tableName: string,
+        conditions?: Record<string, SQLQueryBindings>
+    ): { sql: string; params: SQLQueryBindings[] } {
         let sql = `SELECT COUNT(*) as count FROM ${tableName}`;
-        const params: unknown[] = [];
+        const { whereClause, params } = buildWhereClause(conditions || {});
 
-        if (conditions && Object.keys(conditions).length > 0) {
-            const whereClause = Object.keys(conditions)
-                .map((key) => `${key} = ?`)
-                .join(' AND ');
-            sql += ` WHERE ${whereClause}`;
-            params.push(...Object.values(conditions));
-        }
+        sql += whereClause;
 
         return { sql, params };
     }

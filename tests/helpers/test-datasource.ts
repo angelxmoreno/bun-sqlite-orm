@@ -1,7 +1,7 @@
 import { Database } from 'bun:sqlite';
 import { DataSource } from '../../src/data-source';
 import { NullLogger } from '../../src/logger';
-import type { DbLogger, EntityConstructor } from '../../src/types';
+import type { DbLogger, EntityConstructor, SQLQueryBindings } from '../../src/types';
 
 export interface TestDataSourceOptions {
     entities: EntityConstructor[];
@@ -88,7 +88,7 @@ export function createTestDatabase(dbPath?: string): { db: Database; cleanup: ()
  * Clears all data from test database entities
  */
 export async function clearTestData(
-    entities: Array<{ deleteAll: (conditions: Record<string, unknown>) => Promise<unknown> }>
+    entities: Array<{ deleteAll: (conditions: Record<string, SQLQueryBindings>) => Promise<unknown> }>
 ): Promise<void> {
     for (const Entity of entities) {
         try {

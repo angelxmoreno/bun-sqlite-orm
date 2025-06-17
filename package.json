@@ -29,7 +29,9 @@
         "test:coverage": "bun test --coverage",
         "typecheck": "tsc --noEmit",
         "release": "release-it",
-        "release:dry": "release-it --dry-run"
+        "release:dry": "release-it --dry-run",
+        "sonar": "./scripts/sonar-scan.sh",
+        "check": "bun run typecheck && bun run lint:fix && bun run test"
     },
     "keywords": [
         "orm",
