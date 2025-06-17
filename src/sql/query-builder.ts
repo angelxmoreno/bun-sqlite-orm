@@ -37,6 +37,11 @@ export class QueryBuilder {
     }
 
     insert(tableName: string, data: Record<string, SQLQueryBindings>): { sql: string; params: SQLQueryBindings[] } {
+        // Prevent generating invalid SQL with empty data
+        if (!data || Object.keys(data).length === 0) {
+            throw new Error('Cannot perform INSERT with empty data: at least one column value must be provided');
+        }
+
         const { columns, placeholders, params } = buildInsertClause(data);
 
         return {

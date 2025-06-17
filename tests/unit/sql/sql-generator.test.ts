@@ -232,12 +232,26 @@ describe('SqlGenerator', () => {
             expect(result.values).toEqual(['John']);
         });
 
-        test('should handle empty data object', () => {
+        test('should throw error for empty data object', () => {
             const data = {};
-            const result = sqlGenerator.generateInsert('users', data);
 
-            expect(result.sql).toBe('INSERT INTO users () VALUES ()');
-            expect(result.values).toEqual([]);
+            expect(() => sqlGenerator.generateInsert('users', data)).toThrow(
+                'Cannot perform INSERT with empty data: at least one column value must be provided'
+            );
+        });
+
+        test('should throw error for null data', () => {
+            // @ts-expect-error Testing invalid input
+            expect(() => sqlGenerator.generateInsert('users', null)).toThrow(
+                'Cannot perform INSERT with empty data: at least one column value must be provided'
+            );
+        });
+
+        test('should throw error for undefined data', () => {
+            // @ts-expect-error Testing invalid input
+            expect(() => sqlGenerator.generateInsert('users', undefined)).toThrow(
+                'Cannot perform INSERT with empty data: at least one column value must be provided'
+            );
         });
     });
 
