@@ -23,7 +23,10 @@ export class SqlGenerator {
                 columnDef += ' UNIQUE';
             }
 
-            if (column.default !== undefined && typeof column.default !== 'function') {
+            // Handle SQL defaults first (takes precedence)
+            if (column.sqlDefault !== undefined) {
+                columnDef += ` DEFAULT ${column.sqlDefault}`;
+            } else if (column.default !== undefined && typeof column.default !== 'function') {
                 columnDef += ` DEFAULT ${this.formatDefaultValue(column.default)}`;
             }
 

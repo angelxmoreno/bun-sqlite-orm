@@ -8,7 +8,8 @@
 - ✅ `@PrimaryGeneratedColumn` for auto-increment IDs and UUID generation
 - ✅ `@PrimaryColumn` for custom primary keys
 - ✅ Column types (text, integer, real, blob) optimized for SQLite
-- ✅ Column options (nullable, unique, default values including functions)
+- ✅ Column options (nullable, unique, JavaScript defaults, SQL defaults)
+- ✅ SQL defaults (`sqlDefault`) with CURRENT_TIMESTAMP and custom expressions
 - ✅ TypeScript type inference and reflection-based metadata
 
 ### Active Record Pattern
@@ -25,6 +26,7 @@
 - ✅ SQL query generation optimized for SQLite syntax
 - ✅ Parameterized queries for SQL injection protection
 - ✅ Support for file-based and in-memory databases
+- ✅ SQL defaults with automatic entity reload after INSERT
 
 ### Auto Migrations
 - ✅ Automatic table creation from entity definitions
