@@ -54,8 +54,16 @@ export abstract class BaseEntity {
         // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
         const { tableName, primaryColumns } = getEntityMetadata(this, metadataContainer, true);
 
+        // Ensure single primary key - composite keys not yet supported in get() method
+        if (primaryColumns.length !== 1) {
+            throw new Error(
+                // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
+                `Entity ${this.name} has ${primaryColumns.length} primary keys. The get() method currently only supports entities with exactly one primary key. Use find() with conditions for composite key entities.`
+            );
+        }
+
         const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
-        const primaryColumn = primaryColumns[0]; // Assume single primary key for now
+        const primaryColumn = primaryColumns[0];
         const { sql, params } = queryBuilder.select(tableName, { [primaryColumn.propertyName]: id }, 1);
 
         logger.debug(`Executing query: ${sql}`, { params });
@@ -277,6 +285,13 @@ export abstract class BaseEntity {
 
         if (primaryColumns.length === 0) {
             throw new Error(`No primary key defined for entity ${this.constructor.name}`);
+        }
+
+        // Ensure single primary key - composite keys not yet supported in reload() method
+        if (primaryColumns.length !== 1) {
+            throw new Error(
+                `Entity ${this.constructor.name} has ${primaryColumns.length} primary keys. The reload() method currently only supports entities with exactly one primary key.`
+            );
         }
 
         const primaryColumn = primaryColumns[0];
