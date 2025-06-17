@@ -179,7 +179,7 @@ export abstract class BaseEntity {
         // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
         const tableName = metadataContainer.getTableName(this as unknown as EntityConstructor);
         const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
-        const { sql, params } = queryBuilder.delete(tableName, conditions);
+        const { sql, params } = queryBuilder.delete(tableName, conditions, true);
 
         logger.debug(`Executing query: ${sql}`, { params });
 
@@ -206,7 +206,7 @@ export abstract class BaseEntity {
         // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
         const tableName = metadataContainer.getTableName(this as unknown as EntityConstructor);
         const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
-        const { sql, params } = queryBuilder.update(tableName, data, conditions);
+        const { sql, params } = queryBuilder.update(tableName, data, conditions, true);
 
         logger.debug(`Executing query: ${sql}`, { params });
 

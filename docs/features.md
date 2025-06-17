@@ -131,6 +131,12 @@
 - [ ] Data Mapper pattern implementation
 - [ ] Unit of Work pattern for complex transactions
 
+### Entity & Schema Enhancements
+- [ ] Custom database column names (separate from property names)
+  - Support for `@Column({ name: 'custom_db_column' })` mapping
+  - Proper handling in SQL generation and query conditions
+  - Maintain property name vs database column name distinction
+
 ### Performance & Optimization
 - [ ] Query result caching with configurable strategies
 - [ ] Connection pooling and optimization

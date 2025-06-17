@@ -65,10 +65,16 @@ export class QueryBuilder {
     update(
         tableName: string,
         data: Record<string, SQLQueryBindings>,
-        conditions: Record<string, SQLQueryBindings>
+        conditions: Record<string, SQLQueryBindings>,
+        allowBulkUpdate = false
     ): { sql: string; params: SQLQueryBindings[] } {
+        // Prevent accidental full-table updates unless explicitly allowed
+        if (!allowBulkUpdate && (!conditions || Object.keys(conditions).length === 0)) {
+            throw new Error('Cannot perform UPDATE without WHERE conditions: this would update all rows in the table');
+        }
+
         const { setClause, params: setParams } = buildSetClause(data);
-        const { whereClause, params: whereParams } = buildWhereClause(conditions);
+        const { whereClause, params: whereParams } = buildWhereClause(conditions || {});
 
         return {
             sql: `UPDATE ${tableName} SET ${setClause}${whereClause}`,
@@ -78,9 +84,15 @@ export class QueryBuilder {
 
     delete(
         tableName: string,
-        conditions: Record<string, SQLQueryBindings>
+        conditions: Record<string, SQLQueryBindings>,
+        allowBulkDelete = false
     ): { sql: string; params: SQLQueryBindings[] } {
-        const { whereClause, params } = buildWhereClause(conditions);
+        // Prevent accidental full-table deletions unless explicitly allowed
+        if (!allowBulkDelete && (!conditions || Object.keys(conditions).length === 0)) {
+            throw new Error('Cannot perform DELETE without WHERE conditions: this would delete all rows in the table');
+        }
+
+        const { whereClause, params } = buildWhereClause(conditions || {});
 
         return {
             sql: `DELETE FROM ${tableName}${whereClause}`,

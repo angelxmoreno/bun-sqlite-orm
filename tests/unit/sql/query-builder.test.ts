@@ -405,6 +405,42 @@ describe('QueryBuilder', () => {
             expect(result.sql).toBe('UPDATE users SET name = ?, age = ?, score = ?, isActive = ? WHERE id = ?');
             expect(result.params).toEqual(['Updated Name', 35, 88.5, false, 1]);
         });
+
+        test('should throw error for empty conditions to prevent full-table update', () => {
+            const data = { name: 'Jane' };
+            const emptyConditions = {};
+
+            expect(() => queryBuilder.update('users', data, emptyConditions)).toThrow(
+                'Cannot perform UPDATE without WHERE conditions: this would update all rows in the table'
+            );
+        });
+
+        test('should allow empty conditions when allowBulkUpdate is true', () => {
+            const data = { name: 'Jane' };
+            const emptyConditions = {};
+            const result = queryBuilder.update('users', data, emptyConditions, true);
+
+            expect(result.sql).toBe('UPDATE users SET name = ?');
+            expect(result.params).toEqual(['Jane']);
+        });
+
+        test('should throw error for null conditions', () => {
+            const data = { name: 'Jane' };
+
+            // @ts-expect-error Testing invalid input
+            expect(() => queryBuilder.update('users', data, null)).toThrow(
+                'Cannot perform UPDATE without WHERE conditions: this would update all rows in the table'
+            );
+        });
+
+        test('should throw error for undefined conditions', () => {
+            const data = { name: 'Jane' };
+
+            // @ts-expect-error Testing invalid input
+            expect(() => queryBuilder.update('users', data, undefined)).toThrow(
+                'Cannot perform UPDATE without WHERE conditions: this would update all rows in the table'
+            );
+        });
     });
 
     describe('delete', () => {
@@ -434,6 +470,36 @@ describe('QueryBuilder', () => {
 
             expect(result.sql).toBe('DELETE FROM users WHERE isActive = ? AND score = ? AND lastLogin = ?');
             expect(result.params).toEqual([false, 0, null]);
+        });
+
+        test('should throw error for empty conditions to prevent full-table deletion', () => {
+            const emptyConditions = {};
+
+            expect(() => queryBuilder.delete('users', emptyConditions)).toThrow(
+                'Cannot perform DELETE without WHERE conditions: this would delete all rows in the table'
+            );
+        });
+
+        test('should allow empty conditions when allowBulkDelete is true', () => {
+            const emptyConditions = {};
+            const result = queryBuilder.delete('users', emptyConditions, true);
+
+            expect(result.sql).toBe('DELETE FROM users');
+            expect(result.params).toEqual([]);
+        });
+
+        test('should throw error for null conditions', () => {
+            // @ts-expect-error Testing invalid input
+            expect(() => queryBuilder.delete('users', null)).toThrow(
+                'Cannot perform DELETE without WHERE conditions: this would delete all rows in the table'
+            );
+        });
+
+        test('should throw error for undefined conditions', () => {
+            // @ts-expect-error Testing invalid input
+            expect(() => queryBuilder.delete('users', undefined)).toThrow(
+                'Cannot perform DELETE without WHERE conditions: this would delete all rows in the table'
+            );
         });
     });
 
