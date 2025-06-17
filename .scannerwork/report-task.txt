@@ -1,7 +1,0 @@
-organization=angelxmoreno
-projectKey=angelxmoreno_bun-sqlite-orm
-serverUrl=https://sonarcloud.io
-serverVersion=8.0.0.64410
-dashboardUrl=https://sonarcloud.io/dashboard?id=angelxmoreno_bun-sqlite-orm
-ceTaskId=AZd1vonx7-biF-cWeZIK
-ceTaskUrl=https://sonarcloud.io/api/ce/task?id=AZd1vonx7-biF-cWeZIK
