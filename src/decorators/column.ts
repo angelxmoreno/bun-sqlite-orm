@@ -48,19 +48,26 @@ export function Column(options: ColumnOptions = {}) {
         if (options.index !== undefined) {
             const tableName = metadataContainer.getTableName(entityConstructor);
 
-            // Generate index name
+            // Extract index configuration
             let indexName: string;
+            let isUnique = false;
+
             if (typeof options.index === 'string') {
+                // Custom name, non-unique
                 indexName = options.index;
+            } else if (typeof options.index === 'object') {
+                // Object with name and/or unique options
+                indexName = options.index.name || `idx_${tableName}_${propertyKey}`;
+                isUnique = !!options.index.unique;
             } else {
-                // Auto-generate index name: idx_tablename_columnname
+                // Boolean true - auto-generate name, non-unique
                 indexName = `idx_${tableName}_${propertyKey}`;
             }
 
             const indexMetadata: IndexMetadata = {
                 name: indexName,
                 columns: [propertyKey],
-                unique: false, // Column-level indexes are not unique by default
+                unique: isUnique,
             };
 
             metadataContainer.addIndex(entityConstructor, indexMetadata);

@@ -18,7 +18,13 @@ export interface ColumnOptions {
     unique?: boolean;
     default?: unknown;
     sqlDefault?: string;
-    index?: boolean | string; // true for auto-named, string for custom name
+    /**
+     * Index configuration for the column:
+     * - `true` → auto-named, non-unique index
+     * - `string` → custom name, non-unique index
+     * - `{ name?: string; unique?: boolean }` → fully-featured index
+     */
+    index?: boolean | string | { name?: string; unique?: boolean };
 }
 
 export interface IndexOptions {
