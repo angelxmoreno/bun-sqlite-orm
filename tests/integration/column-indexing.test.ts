@@ -256,9 +256,9 @@ describe('Column Indexing Integration Tests', () => {
 
             // Check for specific index SQL patterns
             expect(
-                userIndexSql.some((sql) => sql.includes('CREATE INDEX IF NOT EXISTS idx_index_test_users_email'))
+                userIndexSql.some((sql) => sql.includes('CREATE INDEX IF NOT EXISTS "idx_index_test_users_email"'))
             ).toBe(true);
-            expect(userIndexSql.some((sql) => sql.includes('CREATE INDEX IF NOT EXISTS idx_custom_username'))).toBe(
+            expect(userIndexSql.some((sql) => sql.includes('CREATE INDEX IF NOT EXISTS "idx_custom_username"'))).toBe(
                 true
             );
         }
@@ -270,13 +270,13 @@ describe('Column Indexing Integration Tests', () => {
             // Check for unique index SQL
             expect(
                 compositeIndexSql.some((sql) =>
-                    sql.includes('CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_email_status')
+                    sql.includes('CREATE UNIQUE INDEX IF NOT EXISTS "idx_unique_email_status"')
                 )
             ).toBe(true);
 
             // Check for composite index columns
-            expect(compositeIndexSql.some((sql) => sql.includes('(firstName, lastName)'))).toBe(true);
-            expect(compositeIndexSql.some((sql) => sql.includes('(firstName, lastName, age)'))).toBe(true);
+            expect(compositeIndexSql.some((sql) => sql.includes('("firstName", "lastName")'))).toBe(true);
+            expect(compositeIndexSql.some((sql) => sql.includes('("firstName", "lastName", "age")'))).toBe(true);
         }
     });
 });
