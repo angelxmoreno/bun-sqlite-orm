@@ -40,12 +40,13 @@ describe('SqlGenerator', () => {
                     ],
                 ]),
                 primaryColumns: [],
+                indexes: [],
             };
 
             const sql = sqlGenerator.generateCreateTable(entityMetadata);
 
             expect(sql).toBe(
-                'CREATE TABLE IF NOT EXISTS test_entity (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL)'
+                'CREATE TABLE IF NOT EXISTS "test_entity" ("id" INTEGER PRIMARY KEY AUTOINCREMENT, "name" TEXT NOT NULL)'
             );
         });
 
@@ -101,12 +102,13 @@ describe('SqlGenerator', () => {
                     ],
                 ]),
                 primaryColumns: [],
+                indexes: [],
             };
 
             const sql = sqlGenerator.generateCreateTable(entityMetadata);
 
             expect(sql).toBe(
-                'CREATE TABLE IF NOT EXISTS complex_entity (id INTEGER PRIMARY KEY, email TEXT NOT NULL UNIQUE, age INTEGER, score REAL NOT NULL DEFAULT 0)'
+                'CREATE TABLE IF NOT EXISTS "complex_entity" ("id" INTEGER PRIMARY KEY, "email" TEXT NOT NULL UNIQUE, "age" INTEGER, "score" REAL NOT NULL DEFAULT 0)'
             );
         });
 
@@ -153,12 +155,13 @@ describe('SqlGenerator', () => {
                     ],
                 ]),
                 primaryColumns: [],
+                indexes: [],
             };
 
             const sql = sqlGenerator.generateCreateTable(entityMetadata);
 
             expect(sql).toBe(
-                "CREATE TABLE IF NOT EXISTS test_entity (id INTEGER PRIMARY KEY AUTOINCREMENT, status TEXT NOT NULL DEFAULT 'active', description TEXT NOT NULL DEFAULT 'It''s a test')"
+                'CREATE TABLE IF NOT EXISTS "test_entity" ("id" INTEGER PRIMARY KEY AUTOINCREMENT, "status" TEXT NOT NULL DEFAULT \'active\', "description" TEXT NOT NULL DEFAULT \'It\'\'s a test\')'
             );
         });
 
@@ -205,12 +208,13 @@ describe('SqlGenerator', () => {
                     ],
                 ]),
                 primaryColumns: [],
+                indexes: [],
             };
 
             const sql = sqlGenerator.generateCreateTable(entityMetadata);
 
             expect(sql).toBe(
-                'CREATE TABLE IF NOT EXISTS test_entity (id INTEGER PRIMARY KEY AUTOINCREMENT, isActive INTEGER NOT NULL DEFAULT 1, isDeleted INTEGER NOT NULL DEFAULT 0)'
+                'CREATE TABLE IF NOT EXISTS "test_entity" ("id" INTEGER PRIMARY KEY AUTOINCREMENT, "isActive" INTEGER NOT NULL DEFAULT 1, "isDeleted" INTEGER NOT NULL DEFAULT 0)'
             );
         });
     });
@@ -220,7 +224,7 @@ describe('SqlGenerator', () => {
             const data = { name: 'John', email: 'john@example.com', age: 30 };
             const result = sqlGenerator.generateInsert('users', data);
 
-            expect(result.sql).toBe('INSERT INTO users (name, email, age) VALUES (?, ?, ?)');
+            expect(result.sql).toBe('INSERT INTO "users" ("name", "email", "age") VALUES (?, ?, ?)');
             expect(result.values).toEqual(['John', 'john@example.com', 30]);
         });
 
@@ -228,7 +232,7 @@ describe('SqlGenerator', () => {
             const data = { name: 'John' };
             const result = sqlGenerator.generateInsert('users', data);
 
-            expect(result.sql).toBe('INSERT INTO users (name) VALUES (?)');
+            expect(result.sql).toBe('INSERT INTO "users" ("name") VALUES (?)');
             expect(result.values).toEqual(['John']);
         });
 
@@ -259,7 +263,7 @@ describe('SqlGenerator', () => {
         test('should generate SELECT statement without conditions', () => {
             const result = sqlGenerator.generateSelect('users');
 
-            expect(result.sql).toBe('SELECT * FROM users');
+            expect(result.sql).toBe('SELECT * FROM "users"');
             expect(result.values).toEqual([]);
         });
 
@@ -267,7 +271,7 @@ describe('SqlGenerator', () => {
             const conditions = { name: 'John', age: 30 };
             const result = sqlGenerator.generateSelect('users', conditions);
 
-            expect(result.sql).toBe('SELECT * FROM users WHERE name = ? AND age = ?');
+            expect(result.sql).toBe('SELECT * FROM "users" WHERE "name" = ? AND "age" = ?');
             expect(result.values).toEqual(['John', 30]);
         });
 
@@ -275,14 +279,14 @@ describe('SqlGenerator', () => {
             const conditions = { id: 1 };
             const result = sqlGenerator.generateSelect('users', conditions);
 
-            expect(result.sql).toBe('SELECT * FROM users WHERE id = ?');
+            expect(result.sql).toBe('SELECT * FROM "users" WHERE "id" = ?');
             expect(result.values).toEqual([1]);
         });
 
         test('should handle empty conditions object', () => {
             const result = sqlGenerator.generateSelect('users', {});
 
-            expect(result.sql).toBe('SELECT * FROM users');
+            expect(result.sql).toBe('SELECT * FROM "users"');
             expect(result.values).toEqual([]);
         });
     });
@@ -293,7 +297,7 @@ describe('SqlGenerator', () => {
             const conditions = { id: 1 };
             const result = sqlGenerator.generateUpdate('users', data, conditions);
 
-            expect(result.sql).toBe('UPDATE users SET name = ?, email = ? WHERE id = ?');
+            expect(result.sql).toBe('UPDATE "users" SET "name" = ?, "email" = ? WHERE "id" = ?');
             expect(result.values).toEqual(['Jane', 'jane@example.com', 1]);
         });
 
@@ -302,7 +306,7 @@ describe('SqlGenerator', () => {
             const conditions = { name: 'John', age: 30 };
             const result = sqlGenerator.generateUpdate('users', data, conditions);
 
-            expect(result.sql).toBe('UPDATE users SET status = ? WHERE name = ? AND age = ?');
+            expect(result.sql).toBe('UPDATE "users" SET "status" = ? WHERE "name" = ? AND "age" = ?');
             expect(result.values).toEqual(['inactive', 'John', 30]);
         });
 
@@ -311,7 +315,7 @@ describe('SqlGenerator', () => {
             const conditions = { id: 1 };
             const result = sqlGenerator.generateUpdate('users', data, conditions);
 
-            expect(result.sql).toBe('UPDATE users SET lastLogin = ? WHERE id = ?');
+            expect(result.sql).toBe('UPDATE "users" SET "lastLogin" = ? WHERE "id" = ?');
             expect(result.values).toEqual(['2024-01-01', 1]);
         });
     });
@@ -321,7 +325,7 @@ describe('SqlGenerator', () => {
             const conditions = { id: 1 };
             const result = sqlGenerator.generateDelete('users', conditions);
 
-            expect(result.sql).toBe('DELETE FROM users WHERE id = ?');
+            expect(result.sql).toBe('DELETE FROM "users" WHERE "id" = ?');
             expect(result.values).toEqual([1]);
         });
 
@@ -329,7 +333,7 @@ describe('SqlGenerator', () => {
             const conditions = { name: 'John', age: 30 };
             const result = sqlGenerator.generateDelete('users', conditions);
 
-            expect(result.sql).toBe('DELETE FROM users WHERE name = ? AND age = ?');
+            expect(result.sql).toBe('DELETE FROM "users" WHERE "name" = ? AND "age" = ?');
             expect(result.values).toEqual(['John', 30]);
         });
     });
@@ -338,7 +342,7 @@ describe('SqlGenerator', () => {
         test('should generate COUNT statement without conditions', () => {
             const result = sqlGenerator.generateCount('users');
 
-            expect(result.sql).toBe('SELECT COUNT(*) as count FROM users');
+            expect(result.sql).toBe('SELECT COUNT(*) as count FROM "users"');
             expect(result.values).toEqual([]);
         });
 
@@ -346,14 +350,14 @@ describe('SqlGenerator', () => {
             const conditions = { active: true, age: 30 };
             const result = sqlGenerator.generateCount('users', conditions);
 
-            expect(result.sql).toBe('SELECT COUNT(*) as count FROM users WHERE active = ? AND age = ?');
+            expect(result.sql).toBe('SELECT COUNT(*) as count FROM "users" WHERE "active" = ? AND "age" = ?');
             expect(result.values).toEqual([true, 30]);
         });
 
         test('should handle empty conditions object', () => {
             const result = sqlGenerator.generateCount('users', {});
 
-            expect(result.sql).toBe('SELECT COUNT(*) as count FROM users');
+            expect(result.sql).toBe('SELECT COUNT(*) as count FROM "users"');
             expect(result.values).toEqual([]);
         });
     });
@@ -390,6 +394,7 @@ describe('SqlGenerator', () => {
                     ],
                 ]),
                 primaryColumns: [],
+                indexes: [],
             };
 
             const sql = sqlGenerator.generateCreateTable(entityMetadata);
@@ -440,6 +445,7 @@ describe('SqlGenerator', () => {
                     ],
                 ]),
                 primaryColumns: [],
+                indexes: [],
             };
 
             const sql = sqlGenerator.generateCreateTable(entityMetadata);

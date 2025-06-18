@@ -31,6 +31,7 @@
 - ✅ **Built-in Validation** - Seamless integration with class-validator decorators
 - 🛠️ **Auto Migrations** - Automatic table creation from entity metadata, zero-config setup
 - 🔍 **Rich Querying** - Type-safe query methods with find, count, exists, and bulk operations
+- 📈 **Database Indexing** - Comprehensive index support with simple, composite, and unique indexes
 - 📝 **Flexible Primary Keys** - Support for auto-increment, UUID, and custom primary key strategies
 - 🔒 **Validation & Safety** - Automatic entity validation with detailed error reporting
 - 📊 **Entity State Tracking** - Built-in change tracking and dirty state management
@@ -54,10 +55,11 @@ bun add bun-sqlite-orm
 Create type-safe entity classes with decorators:
 
 ```typescript
-import { BaseEntity, Entity, PrimaryGeneratedColumn, Column } from 'bun-sqlite-orm';
+import { BaseEntity, Entity, PrimaryGeneratedColumn, Column, Index } from 'bun-sqlite-orm';
 import { IsNotEmpty, IsEmail, MinLength } from 'class-validator';
 
 @Entity('users')
+@Index('idx_name_age', ['name', 'age'])  // Composite index for common queries
 export class User extends BaseEntity {
     @PrimaryGeneratedColumn('int')
     id!: number;
@@ -67,7 +69,7 @@ export class User extends BaseEntity {
     @MinLength(2)
     name!: string;
 
-    @Column({ type: 'text', unique: true })
+    @Column({ type: 'text', unique: true, index: true })  // Indexed for fast lookups
     @IsEmail()
     email!: string;
 
@@ -152,6 +154,8 @@ await User.deleteAll({ status: 'inactive' });
 | `@PrimaryColumn()` | Define primary key column | `@PrimaryColumn() id!: string;` |
 | `@PrimaryGeneratedColumn(strategy)` | Auto-generated primary key | `@PrimaryGeneratedColumn('uuid')` |
 | `@Column(options)` | Define regular column | `@Column({ type: 'text', nullable: true })` |
+| `@Index()` | Create index on property | `@Index() @Column() email!: string;` |
+| `@Index(name, columns, options)` | Create composite index on class | `@Index('idx_name', ['firstName', 'lastName'])` |
 
 ### Column Options
 
@@ -161,7 +165,8 @@ await User.deleteAll({ status: 'inactive' });
     nullable?: boolean,        // Allow NULL values (default: false)
     unique?: boolean,          // Add unique constraint (default: false)
     default?: any | (() => any), // JavaScript default value or function
-    sqlDefault?: string        // SQL default expression (e.g., 'CURRENT_TIMESTAMP')
+    sqlDefault?: string,       // SQL default expression (e.g., 'CURRENT_TIMESTAMP')
+    index?: boolean | string   // Create index: true for auto-named, string for custom name
 })
 ```
 
@@ -179,6 +184,114 @@ id!: string;
 // Manual primary key
 @PrimaryColumn()
 customId!: string;
+```
+
+### Database Indexing
+
+BunSQLiteORM provides comprehensive indexing support to optimize query performance. Indexes are automatically created during table migrations.
+
+#### Column-Level Indexing
+
+Add indexes directly to column definitions:
+
+```typescript
+@Entity('users')
+export class User extends BaseEntity {
+    @PrimaryGeneratedColumn('int')
+    id!: number;
+
+    // Auto-named index: idx_users_email
+    @Column({ type: 'text', index: true })
+    email!: string;
+
+    // Custom-named index
+    @Column({ type: 'text', index: 'idx_custom_username' })
+    username!: string;
+
+    @Column({ type: 'text' })
+    firstName!: string;
+
+    @Column({ type: 'text' })
+    lastName!: string;
+}
+```
+
+#### Property-Level Indexing
+
+Use the `@Index()` decorator on properties:
+
+```typescript
+@Entity('users')
+export class User extends BaseEntity {
+    @PrimaryGeneratedColumn('int')
+    id!: number;
+
+    // Auto-named index: idx_users_email
+    @Index()
+    @Column({ type: 'text' })
+    email!: string;
+
+    // Custom-named index
+    @Index('idx_user_phone')
+    @Column({ type: 'text' })
+    phone!: string;
+}
+```
+
+#### Composite Indexes
+
+Create indexes spanning multiple columns using class-level decorators:
+
+```typescript
+@Entity('posts')
+@Index('idx_author_date', ['authorId', 'createdAt'])              // Regular composite index
+@Index('idx_unique_slug_status', ['slug', 'status'], { unique: true }) // Unique composite index
+export class Post extends BaseEntity {
+    @PrimaryGeneratedColumn('int')
+    id!: number;
+
+    @Column({ type: 'integer' })
+    authorId!: number;
+
+    @Column({ type: 'text' })
+    slug!: string;
+
+    @Column({ type: 'text' })
+    status!: string;
+
+    @Column({ sqlDefault: 'CURRENT_TIMESTAMP' })
+    createdAt!: Date;
+}
+```
+
+#### Index Options
+
+```typescript
+// Index with options
+@Index('idx_unique_email', ['email'], { unique: true })
+
+// Available options:
+interface IndexOptions {
+    unique?: boolean;  // Create unique index (default: false)
+}
+```
+
+#### Generated Index Names
+
+When not providing custom names, indexes are auto-named using the pattern:
+- **Column-level**: `idx_{tableName}_{columnName}`
+- **Property-level**: `idx_{tableName}_{propertyName}`
+
+```typescript
+@Entity('user_profiles')
+export class UserProfile extends BaseEntity {
+    @Column({ index: true })        // Creates: idx_user_profiles_email
+    email!: string;
+
+    @Index()                        // Creates: idx_user_profiles_phone
+    @Column()
+    phone!: string;
+}
 ```
 
 ## ✅ Validation Integration

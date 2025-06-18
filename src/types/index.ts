@@ -18,6 +18,23 @@ export interface ColumnOptions {
     unique?: boolean;
     default?: unknown;
     sqlDefault?: string;
+    /**
+     * Index configuration for the column:
+     * - `true` → auto-named, non-unique index
+     * - `string` → custom name, non-unique index
+     * - `{ name?: string; unique?: boolean }` → fully-featured index
+     */
+    index?: boolean | string | { name?: string; unique?: boolean };
+}
+
+export interface IndexOptions {
+    unique?: boolean;
+}
+
+export interface IndexMetadata {
+    name: string;
+    columns: string[]; // Array of column property names
+    unique: boolean;
 }
 
 export interface EntityMetadata {
@@ -25,6 +42,7 @@ export interface EntityMetadata {
     tableName: string;
     columns: Map<string, ColumnMetadata>;
     primaryColumns: ColumnMetadata[];
+    indexes: IndexMetadata[];
 }
 
 export interface ColumnMetadata {

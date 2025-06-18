@@ -260,4 +260,239 @@ describe('MetadataContainer', () => {
             expect(primaryColumns.map((c) => c.propertyName)).toContain('id2');
         });
     });
+
+    describe('Global Index Uniqueness', () => {
+        // Create test entities for index testing
+        class EntityA {}
+        class EntityB {}
+
+        beforeEach(() => {
+            // Set up entities with columns
+            metadataContainer.addEntity(EntityA as EntityConstructor, 'entity_a');
+            metadataContainer.addEntity(EntityB as EntityConstructor, 'entity_b');
+
+            metadataContainer.addColumn(EntityA as EntityConstructor, 'field1', {
+                propertyName: 'field1',
+                type: 'text',
+                nullable: false,
+                unique: false,
+                isPrimary: false,
+                isGenerated: false,
+            });
+
+            metadataContainer.addColumn(EntityB as EntityConstructor, 'field2', {
+                propertyName: 'field2',
+                type: 'text',
+                nullable: false,
+                unique: false,
+                isPrimary: false,
+                isGenerated: false,
+            });
+        });
+
+        test('should prevent duplicate index names within the same entity (global check takes precedence)', () => {
+            // Add first index
+            metadataContainer.addIndex(EntityA as EntityConstructor, {
+                name: 'idx_test',
+                columns: ['field1'],
+                unique: false,
+            });
+
+            // Try to add same index name to same entity - should fail with global uniqueness error
+            expect(() => {
+                metadataContainer.addIndex(EntityA as EntityConstructor, {
+                    name: 'idx_test',
+                    columns: ['field1'],
+                    unique: false,
+                });
+            }).toThrow("Index name 'idx_test' is already used by another entity");
+        });
+
+        test('should prevent duplicate index names across different entities', () => {
+            // Add index to first entity
+            metadataContainer.addIndex(EntityA as EntityConstructor, {
+                name: 'idx_unique_name',
+                columns: ['field1'],
+                unique: false,
+            });
+
+            // Try to add same index name to different entity - should fail
+            expect(() => {
+                metadataContainer.addIndex(EntityB as EntityConstructor, {
+                    name: 'idx_unique_name',
+                    columns: ['field2'],
+                    unique: false,
+                });
+            }).toThrow("Index name 'idx_unique_name' is already used by another entity");
+        });
+
+        test('should allow different index names across entities', () => {
+            // Add indexes with different names to different entities - should succeed
+            metadataContainer.addIndex(EntityA as EntityConstructor, {
+                name: 'idx_entity_a',
+                columns: ['field1'],
+                unique: false,
+            });
+
+            metadataContainer.addIndex(EntityB as EntityConstructor, {
+                name: 'idx_entity_b',
+                columns: ['field2'],
+                unique: false,
+            });
+
+            // Verify both indexes exist
+            const entityAIndexes = metadataContainer.getIndexes(EntityA as EntityConstructor);
+            const entityBIndexes = metadataContainer.getIndexes(EntityB as EntityConstructor);
+
+            expect(entityAIndexes).toHaveLength(1);
+            expect(entityBIndexes).toHaveLength(1);
+            expect(entityAIndexes[0].name).toBe('idx_entity_a');
+            expect(entityBIndexes[0].name).toBe('idx_entity_b');
+        });
+
+        test('should handle auto-generated index name conflicts during table rename', () => {
+            class EntityC {}
+
+            // Set up EntityC with same table name pattern as EntityA after rename
+            metadataContainer.addEntity(EntityC as EntityConstructor, 'renamed_table');
+            metadataContainer.addColumn(EntityC as EntityConstructor, 'field1', {
+                propertyName: 'field1',
+                type: 'text',
+                nullable: false,
+                unique: false,
+                isPrimary: false,
+                isGenerated: false,
+            });
+
+            // Add auto-generated index to EntityC first
+            metadataContainer.addIndex(EntityC as EntityConstructor, {
+                name: 'idx_renamed_table_field1',
+                columns: ['field1'],
+                unique: false,
+            });
+
+            // Add auto-generated index to EntityA
+            metadataContainer.addIndex(EntityA as EntityConstructor, {
+                name: 'idx_entity_a_field1',
+                columns: ['field1'],
+                unique: false,
+            });
+
+            // Try to rename EntityA table which would create conflicting index name - should fail
+            expect(() => {
+                metadataContainer.addEntity(EntityA as EntityConstructor, 'renamed_table', true);
+            }).toThrow("Cannot rename index: name 'idx_renamed_table_field1' is already used by another entity");
+        });
+
+        test('should successfully update auto-generated index names during table rename when no conflicts', () => {
+            // Add auto-generated index to EntityA
+            metadataContainer.addIndex(EntityA as EntityConstructor, {
+                name: 'idx_entity_a_field1',
+                columns: ['field1'],
+                unique: false,
+            });
+
+            // Rename EntityA table - should succeed and update index name
+            metadataContainer.addEntity(EntityA as EntityConstructor, 'new_table_name', true);
+
+            // Verify index name was updated
+            const indexes = metadataContainer.getIndexes(EntityA as EntityConstructor);
+            expect(indexes).toHaveLength(1);
+            expect(indexes[0].name).toBe('idx_new_table_name_field1');
+        });
+
+        test('should not update custom index names during table rename', () => {
+            // Add custom index name to EntityA
+            metadataContainer.addIndex(EntityA as EntityConstructor, {
+                name: 'custom_index_name',
+                columns: ['field1'],
+                unique: false,
+            });
+
+            // Rename EntityA table - custom index name should remain unchanged
+            metadataContainer.addEntity(EntityA as EntityConstructor, 'new_table_name', true);
+
+            // Verify custom index name was not changed
+            const indexes = metadataContainer.getIndexes(EntityA as EntityConstructor);
+            expect(indexes).toHaveLength(1);
+            expect(indexes[0].name).toBe('custom_index_name');
+        });
+    });
+
+    describe('Container Reset', () => {
+        test('should clear all metadata when clear() is called', () => {
+            // Add some test data
+            metadataContainer.addEntity(TestUser as EntityConstructor, 'test_users');
+            metadataContainer.addColumn(TestUser as EntityConstructor, 'id', {
+                propertyName: 'id',
+                type: 'integer',
+                nullable: false,
+                unique: true,
+                isPrimary: true,
+                isGenerated: true,
+                generationStrategy: 'increment',
+            });
+            metadataContainer.addIndex(TestUser as EntityConstructor, {
+                name: 'idx_test_clear',
+                columns: ['id'],
+                unique: false,
+            });
+
+            // Verify data exists
+            expect(metadataContainer.hasEntity(TestUser as EntityConstructor)).toBe(true);
+            expect(metadataContainer.getIndexes(TestUser as EntityConstructor)).toHaveLength(1);
+
+            // Clear the container
+            metadataContainer.clear();
+
+            // Verify everything is cleared
+            expect(metadataContainer.hasEntity(TestUser as EntityConstructor)).toBe(false);
+            expect(() => metadataContainer.getIndexes(TestUser as EntityConstructor)).toThrow(
+                'Entity metadata not found'
+            );
+        });
+
+        test('should allow re-adding entities after clear()', () => {
+            // Add and clear
+            metadataContainer.addEntity(TestUser as EntityConstructor, 'test_users');
+            metadataContainer.clear();
+
+            // Re-add should work
+            metadataContainer.addEntity(TestUser as EntityConstructor, 'new_table_name');
+            expect(metadataContainer.hasEntity(TestUser as EntityConstructor)).toBe(true);
+            expect(metadataContainer.getTableName(TestUser as EntityConstructor)).toBe('new_table_name');
+        });
+
+        test('should clear global index names when clear() is called', () => {
+            class TestEntity1 {}
+            class TestEntity2 {}
+
+            // Set up entities
+            metadataContainer.addEntity(TestEntity1 as EntityConstructor, 'test1');
+            metadataContainer.addEntity(TestEntity2 as EntityConstructor, 'test2');
+
+            // Add index to first entity
+            metadataContainer.addIndex(TestEntity1 as EntityConstructor, {
+                name: 'shared_index_name',
+                columns: ['field1'],
+                unique: false,
+            });
+
+            // Clear container
+            metadataContainer.clear();
+
+            // Re-add entities
+            metadataContainer.addEntity(TestEntity1 as EntityConstructor, 'test1');
+            metadataContainer.addEntity(TestEntity2 as EntityConstructor, 'test2');
+
+            // Should be able to add same index name to different entity now
+            metadataContainer.addIndex(TestEntity2 as EntityConstructor, {
+                name: 'shared_index_name', // This should work now since global names were cleared
+                columns: ['field2'],
+                unique: false,
+            });
+
+            expect(metadataContainer.getIndexes(TestEntity2 as EntityConstructor)).toHaveLength(1);
+        });
+    });
 });

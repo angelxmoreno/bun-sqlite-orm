@@ -11,6 +11,8 @@ describe('Decorators', () => {
     beforeEach(() => {
         // Get a fresh instance for each test
         metadataContainer = getGlobalMetadataContainer();
+        // Note: We don't clear the container here because class decorators
+        // run at definition time and would be lost
     });
 
     describe('@Entity Decorator', () => {

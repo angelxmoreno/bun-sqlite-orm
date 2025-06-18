@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { getGlobalMetadataContainer } from '../container';
-import type { ColumnMetadata, ColumnOptions } from '../types';
+import type { ColumnMetadata, ColumnOptions, IndexMetadata } from '../types';
 
 export function Column(options: ColumnOptions = {}) {
     return (target: object, propertyKey: string) => {
@@ -43,5 +43,34 @@ export function Column(options: ColumnOptions = {}) {
         }
 
         metadataContainer.addColumn(entityConstructor, propertyKey, columnMetadata);
+
+        // Handle index option if specified
+        if (options.index !== undefined) {
+            const tableName = metadataContainer.getTableName(entityConstructor);
+
+            // Extract index configuration
+            let indexName: string;
+            let isUnique = false;
+
+            if (typeof options.index === 'string') {
+                // Custom name, non-unique
+                indexName = options.index;
+            } else if (typeof options.index === 'object') {
+                // Object with name and/or unique options
+                indexName = options.index.name || `idx_${tableName}_${propertyKey}`;
+                isUnique = !!options.index.unique;
+            } else {
+                // Boolean true - auto-generate name, non-unique
+                indexName = `idx_${tableName}_${propertyKey}`;
+            }
+
+            const indexMetadata: IndexMetadata = {
+                name: indexName,
+                columns: [propertyKey],
+                unique: isUnique,
+            };
+
+            metadataContainer.addIndex(entityConstructor, indexMetadata);
+        }
     };
 }
