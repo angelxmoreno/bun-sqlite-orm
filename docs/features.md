@@ -10,6 +10,8 @@
 - ✅ Column types (text, integer, real, blob) optimized for SQLite
 - ✅ Column options (nullable, unique, JavaScript defaults, SQL defaults)
 - ✅ SQL defaults (`sqlDefault`) with CURRENT_TIMESTAMP and custom expressions
+- ✅ Database indexing with `@Index` decorator and column-level index support
+- ✅ Composite indexes, unique indexes, and auto-generated index names
 - ✅ TypeScript type inference and reflection-based metadata
 
 ### Active Record Pattern
@@ -32,7 +34,8 @@
 - ✅ Automatic table creation from entity definitions
 - ✅ Schema synchronization on application startup
 - ✅ DDL generation from decorator metadata
-- ✅ Support for column constraints and indexes
+- ✅ Support for column constraints and comprehensive database indexing
+- ✅ Automatic index creation during table migrations
 
 ### Validation
 - ✅ Full integration with class-validator decorators
@@ -143,7 +146,6 @@
 - [ ] Query result caching with configurable strategies
 - [ ] Connection pooling and optimization
 - [ ] Lazy loading for large text/blob fields
-- [ ] Database index recommendations
 - [ ] Query performance analysis tools
 
 ### Advanced Database Features
