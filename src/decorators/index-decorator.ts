@@ -8,22 +8,26 @@ import type { IndexMetadata, IndexOptions } from '../types';
  * Usage:
  * @Index() - Creates simple index with auto-generated name
  * @Index('idx_user_email') - Creates named index on single column
+ * @Index({ unique: true }) - Creates unique index with auto-generated name
+ * @Index('idx_unique_email', { unique: true }) - Creates unique index with custom name
  * @Index('idx_user_name', ['firstName', 'lastName']) - Creates composite index
- * @Index('idx_unique_email', ['email'], { unique: true }) - Creates unique index
+ * @Index('idx_unique_email', ['email'], { unique: true }) - Creates unique composite index
  */
 // Overloaded function signatures
 export function Index(): PropertyDecorator;
 export function Index(name: string): PropertyDecorator;
+export function Index(options: IndexOptions): PropertyDecorator;
+export function Index(name: string, options: IndexOptions): PropertyDecorator;
 export function Index(name: string, columns: string[], options?: IndexOptions): ClassDecorator;
 
 // Implementation
 export function Index(
-    nameOrNothing?: string,
-    columns?: string[],
+    nameOrOptions?: string | IndexOptions,
+    columnsOrOptions?: string[] | IndexOptions,
     options: IndexOptions = {}
 ): PropertyDecorator | ClassDecorator {
-    // Case 1: @Index() or @Index('name') on property
-    if (!columns) {
+    // Case 1: Property decorator - @Index(), @Index('name'), @Index(options), @Index('name', options)
+    if (!Array.isArray(columnsOrOptions)) {
         const propertyDecorator: PropertyDecorator = (target: object, propertyKey?: string | symbol) => {
             if (typeof propertyKey !== 'string') {
                 throw new Error('@Index decorator on property requires a property name');
@@ -38,14 +42,30 @@ export function Index(
                 metadataContainer.addEntity(entityConstructor, tableName);
             }
 
-            // Generate index name if not provided
-            const tableName = metadataContainer.getTableName(entityConstructor);
-            const indexName = nameOrNothing || `idx_${tableName}_${propertyKey}`;
+            // Parse arguments to determine name and options
+            let indexName: string;
+            let indexOptions: IndexOptions;
+
+            if (typeof nameOrOptions === 'string') {
+                // @Index('name') or @Index('name', options)
+                indexName = nameOrOptions;
+                indexOptions = (columnsOrOptions as IndexOptions) || {};
+            } else if (typeof nameOrOptions === 'object' && nameOrOptions !== null) {
+                // @Index(options)
+                const tableName = metadataContainer.getTableName(entityConstructor);
+                indexName = `idx_${tableName}_${propertyKey}`;
+                indexOptions = nameOrOptions;
+            } else {
+                // @Index()
+                const tableName = metadataContainer.getTableName(entityConstructor);
+                indexName = `idx_${tableName}_${propertyKey}`;
+                indexOptions = {};
+            }
 
             const indexMetadata: IndexMetadata = {
                 name: indexName,
                 columns: [propertyKey],
-                unique: options.unique || false,
+                unique: indexOptions.unique || false,
             };
 
             metadataContainer.addIndex(entityConstructor, indexMetadata);
@@ -53,9 +73,9 @@ export function Index(
         return propertyDecorator;
     }
 
-    // Case 2: @Index('name', ['col1', 'col2'], options) on class
+    // Case 2: Class decorator - @Index('name', ['col1', 'col2'], options)
     const classDecorator: ClassDecorator = (target) => {
-        if (!nameOrNothing) {
+        if (typeof nameOrOptions !== 'string') {
             throw new Error('Index name is required for composite indexes');
         }
 
@@ -69,8 +89,8 @@ export function Index(
         }
 
         const indexMetadata: IndexMetadata = {
-            name: nameOrNothing,
-            columns: columns,
+            name: nameOrOptions,
+            columns: columnsOrOptions as string[],
             unique: options.unique || false,
         };
 

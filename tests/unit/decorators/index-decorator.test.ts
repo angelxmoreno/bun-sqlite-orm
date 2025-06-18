@@ -154,6 +154,88 @@ describe('Index Decorator Unit Tests', () => {
     });
 });
 
+describe('Property-level @Index Decorator with Options Tests', () => {
+    let metadataContainer: ReturnType<typeof getGlobalMetadataContainer>;
+
+    beforeEach(() => {
+        metadataContainer = getGlobalMetadataContainer();
+        // Note: We don't clear the container here because class decorators
+        // run at definition time and would be lost
+    });
+
+    @Entity('property_index_options_test')
+    class PropertyIndexOptionsTestEntity {
+        // Test @Index({ unique: true })
+        @Index({ unique: true })
+        @Column()
+        uniqueWithOptions!: string;
+
+        // Test @Index('custom_name', { unique: true })
+        @Index('idx_custom_unique', { unique: true })
+        @Column()
+        uniqueWithCustomName!: string;
+
+        // Test @Index({ unique: false }) - explicitly non-unique
+        @Index({ unique: false })
+        @Column()
+        nonUniqueWithOptions!: string;
+
+        // Test @Index('name', { unique: false })
+        @Index('idx_custom_non_unique', { unique: false })
+        @Column()
+        nonUniqueWithCustomName!: string;
+    }
+
+    test('should create unique index with auto-generated name via @Index({ unique: true })', () => {
+        const indexes = metadataContainer.getIndexes(PropertyIndexOptionsTestEntity);
+
+        const uniqueIndex = indexes.find((idx) => idx.columns.includes('uniqueWithOptions'));
+        expect(uniqueIndex).toBeDefined();
+        expect(uniqueIndex?.unique).toBe(true);
+        expect(uniqueIndex?.name).toBe('idx_property_index_options_test_uniqueWithOptions');
+        expect(uniqueIndex?.columns).toEqual(['uniqueWithOptions']);
+    });
+
+    test('should create unique index with custom name via @Index("name", { unique: true })', () => {
+        const indexes = metadataContainer.getIndexes(PropertyIndexOptionsTestEntity);
+
+        const uniqueCustomIndex = indexes.find((idx) => idx.name === 'idx_custom_unique');
+        expect(uniqueCustomIndex).toBeDefined();
+        expect(uniqueCustomIndex?.unique).toBe(true);
+        expect(uniqueCustomIndex?.columns).toEqual(['uniqueWithCustomName']);
+    });
+
+    test('should create non-unique index with auto-generated name via @Index({ unique: false })', () => {
+        const indexes = metadataContainer.getIndexes(PropertyIndexOptionsTestEntity);
+
+        const nonUniqueIndex = indexes.find((idx) => idx.columns.includes('nonUniqueWithOptions'));
+        expect(nonUniqueIndex).toBeDefined();
+        expect(nonUniqueIndex?.unique).toBe(false);
+        expect(nonUniqueIndex?.name).toBe('idx_property_index_options_test_nonUniqueWithOptions');
+        expect(nonUniqueIndex?.columns).toEqual(['nonUniqueWithOptions']);
+    });
+
+    test('should create non-unique index with custom name via @Index("name", { unique: false })', () => {
+        const indexes = metadataContainer.getIndexes(PropertyIndexOptionsTestEntity);
+
+        const nonUniqueCustomIndex = indexes.find((idx) => idx.name === 'idx_custom_non_unique');
+        expect(nonUniqueCustomIndex).toBeDefined();
+        expect(nonUniqueCustomIndex?.unique).toBe(false);
+        expect(nonUniqueCustomIndex?.columns).toEqual(['nonUniqueWithCustomName']);
+    });
+
+    test('should have all four property-level indexes with options', () => {
+        const indexes = metadataContainer.getIndexes(PropertyIndexOptionsTestEntity);
+        expect(indexes).toHaveLength(4);
+
+        const uniqueIndexes = indexes.filter((idx) => idx.unique);
+        expect(uniqueIndexes).toHaveLength(2);
+
+        const nonUniqueIndexes = indexes.filter((idx) => !idx.unique);
+        expect(nonUniqueIndexes).toHaveLength(2);
+    });
+});
+
 describe('Column-level Unique Index Tests', () => {
     let metadataContainer: ReturnType<typeof getGlobalMetadataContainer>;
 
