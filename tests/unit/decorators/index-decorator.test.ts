@@ -30,7 +30,7 @@ class IndexDecoratorTestEntity {
 
 @Entity('composite_index_entity')
 @Index('idx_name_composite', ['firstName', 'lastName'])
-@Index('idx_unique_email_status', ['email', 'status'], { unique: true })
+@Index('idx_unit_test_unique_email_status', ['email', 'status'], { unique: true })
 class CompositeIndexEntity {
     @Column()
     firstName!: string;
@@ -80,7 +80,7 @@ describe('Index Decorator Unit Tests', () => {
         expect(nameComposite?.columns).toEqual(['firstName', 'lastName']);
         expect(nameComposite?.unique).toBe(false);
 
-        const uniqueComposite = indexes.find((idx) => idx.name === 'idx_unique_email_status');
+        const uniqueComposite = indexes.find((idx) => idx.name === 'idx_unit_test_unique_email_status');
         expect(uniqueComposite).toBeDefined();
         expect(uniqueComposite?.columns).toEqual(['email', 'status']);
         expect(uniqueComposite?.unique).toBe(true);
@@ -110,7 +110,7 @@ describe('Index Decorator Unit Tests', () => {
                 @Column()
                 lastName!: string;
             }
-        }).toThrow("Index with name 'duplicate_name' already exists");
+        }).toThrow("Index name 'duplicate_name' is already used by another entity");
     });
 
     test('should require index name for composite indexes', () => {
