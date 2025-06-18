@@ -91,6 +91,13 @@ export class DataSource {
         return getGlobalMetadataContainer();
     }
 
+    getSqlGenerator(): SqlGenerator {
+        if (!this.isInitialized) {
+            throw new Error('DataSource must be initialized before accessing SqlGenerator');
+        }
+        return this.typeBunContainer.resolve<SqlGenerator>('SqlGenerator');
+    }
+
     async runMigrations(): Promise<void> {
         if (!this.isInitialized) {
             throw new Error('DataSource must be initialized before running migrations');
@@ -120,6 +127,23 @@ export class DataSource {
             } catch (error) {
                 logger.error(`Failed to create table: ${entity.tableName}`, error);
                 throw error;
+            }
+        }
+
+        // Create indexes after all tables are created
+        for (const entity of entities) {
+            const indexStatements = sqlGenerator.generateIndexes(entity);
+
+            for (const indexSql of indexStatements) {
+                logger.debug(`Creating index for table: ${entity.tableName}`, { sql: indexSql });
+
+                try {
+                    this.database.exec(indexSql);
+                    logger.info(`Created index for table: ${entity.tableName}`);
+                } catch (error) {
+                    logger.error(`Failed to create index for table: ${entity.tableName}`, error);
+                    throw error;
+                }
             }
         }
     }

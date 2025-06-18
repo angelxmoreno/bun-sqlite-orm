@@ -18,6 +18,17 @@ export interface ColumnOptions {
     unique?: boolean;
     default?: unknown;
     sqlDefault?: string;
+    index?: boolean | string; // true for auto-named, string for custom name
+}
+
+export interface IndexOptions {
+    unique?: boolean;
+}
+
+export interface IndexMetadata {
+    name: string;
+    columns: string[]; // Array of column property names
+    unique: boolean;
 }
 
 export interface EntityMetadata {
@@ -25,6 +36,7 @@ export interface EntityMetadata {
     tableName: string;
     columns: Map<string, ColumnMetadata>;
     primaryColumns: ColumnMetadata[];
+    indexes: IndexMetadata[];
 }
 
 export interface ColumnMetadata {

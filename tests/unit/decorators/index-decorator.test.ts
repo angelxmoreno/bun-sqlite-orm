@@ -1,0 +1,153 @@
+import { beforeEach, describe, expect, test } from 'bun:test';
+import { getGlobalMetadataContainer } from '../../../src/container';
+import { Column } from '../../../src/decorators/column';
+import { Entity } from '../../../src/decorators/entity';
+import { Index } from '../../../src/decorators/index-decorator';
+
+// Test entities
+@Entity('index_decorator_test')
+class IndexDecoratorTestEntity {
+    @Index()
+    @Column()
+    simpleIndex!: string;
+
+    @Index('custom_index_name')
+    @Column()
+    namedIndex!: string;
+
+    @Column()
+    firstName!: string;
+
+    @Column()
+    lastName!: string;
+
+    @Column()
+    email!: string;
+
+    @Column()
+    status!: string;
+}
+
+@Entity('composite_index_entity')
+@Index('idx_name_composite', ['firstName', 'lastName'])
+@Index('idx_unique_email_status', ['email', 'status'], { unique: true })
+class CompositeIndexEntity {
+    @Column()
+    firstName!: string;
+
+    @Column()
+    lastName!: string;
+
+    @Column()
+    email!: string;
+
+    @Column()
+    status!: string;
+}
+
+describe('Index Decorator Unit Tests', () => {
+    let metadataContainer: ReturnType<typeof getGlobalMetadataContainer>;
+
+    beforeEach(() => {
+        metadataContainer = getGlobalMetadataContainer();
+    });
+
+    test('should create simple property-level index with auto-generated name', () => {
+        const indexes = metadataContainer.getIndexes(IndexDecoratorTestEntity);
+
+        const simpleIndex = indexes.find((idx) => idx.columns.includes('simpleIndex'));
+        expect(simpleIndex).toBeDefined();
+        expect(simpleIndex?.name).toBe('idx_index_decorator_test_simpleIndex');
+        expect(simpleIndex?.columns).toEqual(['simpleIndex']);
+        expect(simpleIndex?.unique).toBe(false);
+    });
+
+    test('should create property-level index with custom name', () => {
+        const indexes = metadataContainer.getIndexes(IndexDecoratorTestEntity);
+
+        const namedIndex = indexes.find((idx) => idx.name === 'custom_index_name');
+        expect(namedIndex).toBeDefined();
+        expect(namedIndex?.columns).toEqual(['namedIndex']);
+        expect(namedIndex?.unique).toBe(false);
+    });
+
+    test('should create composite indexes at class level', () => {
+        const indexes = metadataContainer.getIndexes(CompositeIndexEntity);
+        expect(indexes).toHaveLength(2);
+
+        const nameComposite = indexes.find((idx) => idx.name === 'idx_name_composite');
+        expect(nameComposite).toBeDefined();
+        expect(nameComposite?.columns).toEqual(['firstName', 'lastName']);
+        expect(nameComposite?.unique).toBe(false);
+
+        const uniqueComposite = indexes.find((idx) => idx.name === 'idx_unique_email_status');
+        expect(uniqueComposite).toBeDefined();
+        expect(uniqueComposite?.columns).toEqual(['email', 'status']);
+        expect(uniqueComposite?.unique).toBe(true);
+    });
+
+    test('should auto-register entity when using Index decorator', () => {
+        // Test that entity gets registered automatically when Index decorator is used
+        expect(metadataContainer.hasEntity(IndexDecoratorTestEntity)).toBe(true);
+        expect(metadataContainer.hasEntity(CompositeIndexEntity)).toBe(true);
+
+        const tableName1 = metadataContainer.getTableName(IndexDecoratorTestEntity);
+        expect(tableName1).toBe('index_decorator_test');
+
+        const tableName2 = metadataContainer.getTableName(CompositeIndexEntity);
+        expect(tableName2).toBe('composite_index_entity');
+    });
+
+    test('should throw error for duplicate index names', () => {
+        expect(() => {
+            @Entity('duplicate_index_test')
+            @Index('duplicate_name', ['firstName'])
+            @Index('duplicate_name', ['lastName']) // This should throw
+            class DuplicateIndexEntity {
+                @Column()
+                firstName!: string;
+
+                @Column()
+                lastName!: string;
+            }
+        }).toThrow("Index with name 'duplicate_name' already exists");
+    });
+
+    test('should require index name for composite indexes', () => {
+        expect(() => {
+            // @ts-expect-error Testing invalid usage
+            @Index(undefined, ['firstName', 'lastName'])
+            class InvalidCompositeIndex {
+                @Column()
+                firstName!: string;
+
+                @Column()
+                lastName!: string;
+            }
+        }).toThrow('Index name is required for composite indexes');
+    });
+
+    test('should handle property decorator without property name', () => {
+        expect(() => {
+            class TestEntity {
+                // This would be invalid usage - decorator without proper property
+            }
+
+            const decorator = Index();
+            // @ts-expect-error Testing invalid usage
+            decorator(TestEntity.prototype, undefined);
+        }).toThrow('@Index decorator on property requires a property name');
+    });
+
+    test('should create index metadata with correct default options', () => {
+        const indexes = metadataContainer.getIndexes(IndexDecoratorTestEntity);
+
+        for (const index of indexes) {
+            expect(index.name).toBeDefined();
+            expect(index.columns).toBeDefined();
+            expect(Array.isArray(index.columns)).toBe(true);
+            expect(index.columns.length).toBeGreaterThan(0);
+            expect(typeof index.unique).toBe('boolean');
+        }
+    });
+});

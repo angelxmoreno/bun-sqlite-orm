@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { injectable } from 'tsyringe';
-import type { ColumnMetadata, EntityConstructor, EntityMetadata } from '../types';
+import type { ColumnMetadata, EntityConstructor, EntityMetadata, IndexMetadata } from '../types';
 
 @injectable()
 export class MetadataContainer {
@@ -13,12 +13,23 @@ export class MetadataContainer {
                 tableName,
                 columns: new Map(),
                 primaryColumns: [],
+                indexes: [],
             });
         } else if (isExplicit) {
             // Allow @Entity decorator to override auto-registered table name
             // biome-ignore lint/style/noNonNullAssertion: We just checked that the entity exists
             const existingMetadata = this.entities.get(target)!;
+            const oldTableName = existingMetadata.tableName;
             existingMetadata.tableName = tableName;
+
+            // Update auto-generated index names that used the old table name
+            for (const index of existingMetadata.indexes) {
+                if (index.name.startsWith(`idx_${oldTableName}_`)) {
+                    // This is an auto-generated index name, update it with the new table name
+                    const columnPart = index.name.replace(`idx_${oldTableName}_`, '');
+                    index.name = `idx_${tableName}_${columnPart}`;
+                }
+            }
         }
     }
 
@@ -69,5 +80,28 @@ export class MetadataContainer {
             throw new Error(`Entity metadata not found for ${target.name}. Make sure to use @Entity decorator.`);
         }
         return metadata.primaryColumns;
+    }
+
+    addIndex(target: EntityConstructor, indexMetadata: IndexMetadata): void {
+        const entityMetadata = this.entities.get(target);
+        if (!entityMetadata) {
+            throw new Error(`Entity metadata not found for ${target.name}. Make sure to use @Entity decorator.`);
+        }
+
+        // Check for duplicate index names within the entity
+        const existingIndex = entityMetadata.indexes.find((idx) => idx.name === indexMetadata.name);
+        if (existingIndex) {
+            throw new Error(`Index with name '${indexMetadata.name}' already exists for entity ${target.name}`);
+        }
+
+        entityMetadata.indexes.push(indexMetadata);
+    }
+
+    getIndexes(target: EntityConstructor): IndexMetadata[] {
+        const metadata = this.getEntityMetadata(target);
+        if (!metadata) {
+            throw new Error(`Entity metadata not found for ${target.name}. Make sure to use @Entity decorator.`);
+        }
+        return metadata.indexes;
     }
 }

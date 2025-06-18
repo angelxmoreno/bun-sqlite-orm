@@ -36,6 +36,20 @@ export class SqlGenerator {
         return `CREATE TABLE IF NOT EXISTS ${entity.tableName} (${columns.join(', ')})`;
     }
 
+    generateIndexes(entity: EntityMetadata): string[] {
+        const indexStatements: string[] = [];
+
+        for (const index of entity.indexes) {
+            const uniqueKeyword = index.unique ? 'UNIQUE ' : '';
+            const columnList = index.columns.join(', ');
+
+            const createIndexSql = `CREATE ${uniqueKeyword}INDEX IF NOT EXISTS ${index.name} ON ${entity.tableName} (${columnList})`;
+            indexStatements.push(createIndexSql);
+        }
+
+        return indexStatements;
+    }
+
     generateInsert(tableName: string, data: Record<string, unknown>): { sql: string; values: unknown[] } {
         // Prevent generating invalid SQL with empty data
         if (!data || Object.keys(data).length === 0) {
