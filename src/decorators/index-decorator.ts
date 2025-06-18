@@ -11,9 +11,12 @@ import type { IndexMetadata, IndexOptions } from '../types';
  * @Index('idx_user_name', ['firstName', 'lastName']) - Creates composite index
  * @Index('idx_unique_email', ['email'], { unique: true }) - Creates unique index
  */
+// Overloaded function signatures
 export function Index(): PropertyDecorator;
 export function Index(name: string): PropertyDecorator;
 export function Index(name: string, columns: string[], options?: IndexOptions): ClassDecorator;
+
+// Implementation
 export function Index(
     nameOrNothing?: string,
     columns?: string[],
@@ -21,7 +24,7 @@ export function Index(
 ): PropertyDecorator | ClassDecorator {
     // Case 1: @Index() or @Index('name') on property
     if (!columns) {
-        return (target: object, propertyKey?: string | symbol) => {
+        const propertyDecorator: PropertyDecorator = (target: object, propertyKey?: string | symbol) => {
             if (typeof propertyKey !== 'string') {
                 throw new Error('@Index decorator on property requires a property name');
             }
@@ -47,20 +50,22 @@ export function Index(
 
             metadataContainer.addIndex(entityConstructor, indexMetadata);
         };
+        return propertyDecorator;
     }
 
     // Case 2: @Index('name', ['col1', 'col2'], options) on class
-    return (target: new () => unknown) => {
+    const classDecorator: ClassDecorator = (target) => {
         if (!nameOrNothing) {
             throw new Error('Index name is required for composite indexes');
         }
 
         const metadataContainer = getGlobalMetadataContainer();
+        const entityConstructor = target as unknown as new () => unknown;
 
         // Auto-register entity if not already registered
-        if (!metadataContainer.hasEntity(target)) {
-            const tableName = target.name.toLowerCase();
-            metadataContainer.addEntity(target, tableName);
+        if (!metadataContainer.hasEntity(entityConstructor)) {
+            const tableName = entityConstructor.name.toLowerCase();
+            metadataContainer.addEntity(entityConstructor, tableName);
         }
 
         const indexMetadata: IndexMetadata = {
@@ -69,6 +74,7 @@ export function Index(
             unique: options.unique || false,
         };
 
-        metadataContainer.addIndex(target, indexMetadata);
+        metadataContainer.addIndex(entityConstructor, indexMetadata);
     };
+    return classDecorator;
 }

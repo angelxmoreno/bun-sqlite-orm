@@ -40,6 +40,7 @@ describe('SqlGenerator', () => {
                     ],
                 ]),
                 primaryColumns: [],
+                indexes: [],
             };
 
             const sql = sqlGenerator.generateCreateTable(entityMetadata);
@@ -101,6 +102,7 @@ describe('SqlGenerator', () => {
                     ],
                 ]),
                 primaryColumns: [],
+                indexes: [],
             };
 
             const sql = sqlGenerator.generateCreateTable(entityMetadata);
@@ -153,6 +155,7 @@ describe('SqlGenerator', () => {
                     ],
                 ]),
                 primaryColumns: [],
+                indexes: [],
             };
 
             const sql = sqlGenerator.generateCreateTable(entityMetadata);
@@ -205,6 +208,7 @@ describe('SqlGenerator', () => {
                     ],
                 ]),
                 primaryColumns: [],
+                indexes: [],
             };
 
             const sql = sqlGenerator.generateCreateTable(entityMetadata);
@@ -390,6 +394,7 @@ describe('SqlGenerator', () => {
                     ],
                 ]),
                 primaryColumns: [],
+                indexes: [],
             };
 
             const sql = sqlGenerator.generateCreateTable(entityMetadata);
@@ -440,6 +445,7 @@ describe('SqlGenerator', () => {
                     ],
                 ]),
                 primaryColumns: [],
+                indexes: [],
             };
 
             const sql = sqlGenerator.generateCreateTable(entityMetadata);
