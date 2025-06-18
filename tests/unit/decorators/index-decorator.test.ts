@@ -129,6 +129,20 @@ describe('Index Decorator Unit Tests', () => {
         }).toThrow('Index name is required for composite indexes');
     });
 
+    test('should throw error when composite index has empty columns array', () => {
+        expect(() => {
+            @Entity('empty_columns_composite_test')
+            @Index('idx_empty_composite', []) // Empty array should throw
+            class EmptyColumnsCompositeEntity {
+                @Column()
+                name!: string;
+
+                @Column()
+                email!: string;
+            }
+        }).toThrow('Composite index must specify at least one column');
+    });
+
     test('should handle property decorator without property name', () => {
         expect(() => {
             class TestEntity {
