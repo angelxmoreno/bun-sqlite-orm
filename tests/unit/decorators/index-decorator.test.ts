@@ -328,3 +328,108 @@ describe('Column-level Unique Index Tests', () => {
         expect(nonUniqueIndexes).toHaveLength(4);
     });
 });
+
+describe('Composite Index Validation Tests', () => {
+    let metadataContainer: ReturnType<typeof getGlobalMetadataContainer>;
+
+    beforeEach(() => {
+        metadataContainer = getGlobalMetadataContainer();
+    });
+
+    test('should throw error for empty columns array', () => {
+        expect(() => {
+            @Entity('empty_columns_test')
+            @Index('idx_empty', []) // Empty array should throw
+            class EmptyColumnsEntity {
+                @Column()
+                name!: string;
+            }
+        }).toThrow('Composite index must specify at least one column');
+    });
+
+    test('should throw error for duplicate column names', () => {
+        expect(() => {
+            @Entity('duplicate_columns_test')
+            @Index('idx_duplicate', ['name', 'email', 'name']) // Duplicate 'name'
+            class DuplicateColumnsEntity {
+                @Column()
+                name!: string;
+
+                @Column()
+                email!: string;
+            }
+        }).toThrow("Duplicate column names in index 'idx_duplicate': name");
+    });
+
+    test('should throw error for non-existent columns', () => {
+        expect(() => {
+            @Entity('non_existent_columns_test')
+            @Index('idx_invalid', ['name', 'nonExistentColumn']) // nonExistentColumn doesn't exist
+            class NonExistentColumnsEntity {
+                @Column()
+                name!: string;
+            }
+        }).toThrow("Index 'idx_invalid' references non-existent columns: nonExistentColumn");
+    });
+
+    test('should throw error for multiple non-existent columns', () => {
+        expect(() => {
+            @Entity('multiple_invalid_test')
+            @Index('idx_multiple_invalid', ['name', 'invalid1', 'invalid2'])
+            class MultipleInvalidEntity {
+                @Column()
+                name!: string;
+            }
+        }).toThrow("Index 'idx_multiple_invalid' references non-existent columns: invalid1, invalid2");
+    });
+
+    test('should allow valid composite index with existing columns', () => {
+        @Entity('valid_composite_test')
+        @Index('idx_valid_composite', ['firstName', 'lastName'])
+        class ValidCompositeEntity {
+            @Column()
+            firstName!: string;
+
+            @Column()
+            lastName!: string;
+        }
+
+        // Should not throw and should create the index
+        const indexes = metadataContainer.getIndexes(ValidCompositeEntity);
+        const compositeIndex = indexes.find((idx) => idx.name === 'idx_valid_composite');
+        expect(compositeIndex).toBeDefined();
+        expect(compositeIndex?.columns).toEqual(['firstName', 'lastName']);
+    });
+
+    test('should validate columns in correct order for composite index', () => {
+        @Entity('ordered_composite_test')
+        @Index('idx_ordered', ['lastName', 'firstName', 'middleName'])
+        class OrderedCompositeEntity {
+            @Column()
+            firstName!: string;
+
+            @Column()
+            middleName!: string;
+
+            @Column()
+            lastName!: string;
+        }
+
+        const indexes = metadataContainer.getIndexes(OrderedCompositeEntity);
+        const orderedIndex = indexes.find((idx) => idx.name === 'idx_ordered');
+        expect(orderedIndex).toBeDefined();
+        expect(orderedIndex?.columns).toEqual(['lastName', 'firstName', 'middleName']);
+    });
+
+    test('should handle null columns parameter', () => {
+        expect(() => {
+            @Entity('null_columns_test')
+            // Testing invalid usage - passing null as columns array
+            @Index('idx_null', null as unknown as string[])
+            class NullColumnsEntity {
+                @Column()
+                name!: string;
+            }
+        }).toThrow('Composite index must specify at least one column');
+    });
+});
