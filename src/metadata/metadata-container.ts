@@ -127,4 +127,17 @@ export class MetadataContainer {
         }
         return metadata.indexes;
     }
+
+    /**
+     * Clears all metadata from the container.
+     * Useful for resetting state between tests.
+     *
+     * ⚠️  WARNING: This will remove all entity metadata including those registered
+     * by class decorators. Only use this if you can re-register entities after clearing,
+     * or in tests that define entities within the test functions themselves.
+     */
+    clear(): void {
+        this.entities.clear();
+        this.globalIndexNames.clear();
+    }
 }

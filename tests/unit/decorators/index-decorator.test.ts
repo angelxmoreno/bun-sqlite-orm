@@ -50,6 +50,8 @@ describe('Index Decorator Unit Tests', () => {
 
     beforeEach(() => {
         metadataContainer = getGlobalMetadataContainer();
+        // Note: We don't clear the container here because class decorators
+        // run at definition time and would be lost
     });
 
     test('should create simple property-level index with auto-generated name', () => {
@@ -157,6 +159,8 @@ describe('Column-level Unique Index Tests', () => {
 
     beforeEach(() => {
         metadataContainer = getGlobalMetadataContainer();
+        // Note: We don't clear the container here because class decorators
+        // run at definition time and would be lost
     });
 
     @Entity('column_unique_index_test')

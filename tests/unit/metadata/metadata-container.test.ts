@@ -418,4 +418,81 @@ describe('MetadataContainer', () => {
             expect(indexes[0].name).toBe('custom_index_name');
         });
     });
+
+    describe('Container Reset', () => {
+        test('should clear all metadata when clear() is called', () => {
+            // Add some test data
+            metadataContainer.addEntity(TestUser as EntityConstructor, 'test_users');
+            metadataContainer.addColumn(TestUser as EntityConstructor, 'id', {
+                propertyName: 'id',
+                type: 'integer',
+                nullable: false,
+                unique: true,
+                isPrimary: true,
+                isGenerated: true,
+                generationStrategy: 'increment',
+            });
+            metadataContainer.addIndex(TestUser as EntityConstructor, {
+                name: 'idx_test_clear',
+                columns: ['id'],
+                unique: false,
+            });
+
+            // Verify data exists
+            expect(metadataContainer.hasEntity(TestUser as EntityConstructor)).toBe(true);
+            expect(metadataContainer.getIndexes(TestUser as EntityConstructor)).toHaveLength(1);
+
+            // Clear the container
+            metadataContainer.clear();
+
+            // Verify everything is cleared
+            expect(metadataContainer.hasEntity(TestUser as EntityConstructor)).toBe(false);
+            expect(() => metadataContainer.getIndexes(TestUser as EntityConstructor)).toThrow(
+                'Entity metadata not found'
+            );
+        });
+
+        test('should allow re-adding entities after clear()', () => {
+            // Add and clear
+            metadataContainer.addEntity(TestUser as EntityConstructor, 'test_users');
+            metadataContainer.clear();
+
+            // Re-add should work
+            metadataContainer.addEntity(TestUser as EntityConstructor, 'new_table_name');
+            expect(metadataContainer.hasEntity(TestUser as EntityConstructor)).toBe(true);
+            expect(metadataContainer.getTableName(TestUser as EntityConstructor)).toBe('new_table_name');
+        });
+
+        test('should clear global index names when clear() is called', () => {
+            class TestEntity1 {}
+            class TestEntity2 {}
+
+            // Set up entities
+            metadataContainer.addEntity(TestEntity1 as EntityConstructor, 'test1');
+            metadataContainer.addEntity(TestEntity2 as EntityConstructor, 'test2');
+
+            // Add index to first entity
+            metadataContainer.addIndex(TestEntity1 as EntityConstructor, {
+                name: 'shared_index_name',
+                columns: ['field1'],
+                unique: false,
+            });
+
+            // Clear container
+            metadataContainer.clear();
+
+            // Re-add entities
+            metadataContainer.addEntity(TestEntity1 as EntityConstructor, 'test1');
+            metadataContainer.addEntity(TestEntity2 as EntityConstructor, 'test2');
+
+            // Should be able to add same index name to different entity now
+            metadataContainer.addIndex(TestEntity2 as EntityConstructor, {
+                name: 'shared_index_name', // This should work now since global names were cleared
+                columns: ['field2'],
+                unique: false,
+            });
+
+            expect(metadataContainer.getIndexes(TestEntity2 as EntityConstructor)).toHaveLength(1);
+        });
+    });
 });
