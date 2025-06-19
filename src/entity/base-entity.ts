@@ -14,6 +14,7 @@ import {
     getEntityMetadata,
     resolveDependencies,
     toSQLQueryBinding,
+    validateDataSourceInitialization,
 } from './entity-utils';
 
 export abstract class BaseEntity {
@@ -182,6 +183,7 @@ export abstract class BaseEntity {
     }
 
     static async deleteAll(conditions: Record<string, SQLQueryBindings>): Promise<number> {
+        validateDataSourceInitialization();
         const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
         const logger = typeBunContainer.resolve<DbLogger>('DbLogger');
 
@@ -209,6 +211,7 @@ export abstract class BaseEntity {
         data: Record<string, SQLQueryBindings>,
         conditions: Record<string, SQLQueryBindings>
     ): Promise<number> {
+        validateDataSourceInitialization();
         const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
         const logger = typeBunContainer.resolve<DbLogger>('DbLogger');
 
@@ -307,6 +310,7 @@ export abstract class BaseEntity {
     }
 
     isChanged(): boolean {
+        validateDataSourceInitialization();
         const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
         const columns = metadataContainer.getColumns(this.constructor as unknown as EntityConstructor);
 
@@ -321,6 +325,7 @@ export abstract class BaseEntity {
 
     getChanges(): Record<string, { from: unknown; to: unknown }> {
         const changes: Record<string, { from: unknown; to: unknown }> = {};
+        validateDataSourceInitialization();
         const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
         const columns = metadataContainer.getColumns(this.constructor as unknown as EntityConstructor);
 
@@ -338,6 +343,7 @@ export abstract class BaseEntity {
 
     // Private methods
     private async _validate(): Promise<void> {
+        validateDataSourceInitialization();
         const logger = typeBunContainer.resolve<DbLogger>('DbLogger');
 
         const errors = await validate(this, {
@@ -369,6 +375,7 @@ export abstract class BaseEntity {
     }
 
     private async _insert(): Promise<void> {
+        validateDataSourceInitialization();
         const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
         const logger = typeBunContainer.resolve<DbLogger>('DbLogger');
 
@@ -451,6 +458,7 @@ export abstract class BaseEntity {
     }
 
     private async _update(): Promise<void> {
+        validateDataSourceInitialization();
         const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
         const logger = typeBunContainer.resolve<DbLogger>('DbLogger');
 
@@ -515,12 +523,25 @@ export abstract class BaseEntity {
     }
 
     private _captureOriginalValues(): void {
-        const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
-        const columns = metadataContainer.getColumns(this.constructor as unknown as EntityConstructor);
+        try {
+            // Try to capture original values using metadata if available
+            const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
+            const columns = metadataContainer.getColumns(this.constructor as unknown as EntityConstructor);
 
-        this._originalValues = {};
-        for (const [propertyName] of columns) {
-            this._originalValues[propertyName] = (this as Record<string, unknown>)[propertyName];
+            this._originalValues = {};
+            for (const [propertyName] of columns) {
+                this._originalValues[propertyName] = (this as Record<string, unknown>)[propertyName];
+            }
+        } catch (error) {
+            // If DataSource is not initialized, fall back to capturing all enumerable properties
+            // This allows build() to work without database initialization
+            this._originalValues = {};
+            for (const propertyName of Object.keys(this as Record<string, unknown>)) {
+                // Skip internal properties
+                if (!propertyName.startsWith('_')) {
+                    this._originalValues[propertyName] = (this as Record<string, unknown>)[propertyName];
+                }
+            }
         }
     }
 }
