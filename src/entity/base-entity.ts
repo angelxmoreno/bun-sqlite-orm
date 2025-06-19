@@ -14,6 +14,7 @@ import {
     getEntityMetadata,
     resolveDependencies,
     toSQLQueryBinding,
+    validateDataSourceInitialization,
 } from './entity-utils';
 
 export abstract class BaseEntity {
@@ -22,6 +23,7 @@ export abstract class BaseEntity {
 
     // Private helper for executing queries with proper statement management
     private static _executeQuery<T>(sql: string, params: SQLQueryBindings[], method: 'get' | 'all' | 'run'): T {
+        validateDataSourceInitialization();
         const db = typeBunContainer.resolve<Database>('DatabaseConnection');
         const stmt: Statement = db.prepare(sql);
 
@@ -63,6 +65,7 @@ export abstract class BaseEntity {
             );
         }
 
+        validateDataSourceInitialization();
         const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
         const primaryColumn = primaryColumns[0];
         const { sql, params } = queryBuilder.select(tableName, { [primaryColumn.propertyName]: id }, 1);
@@ -97,6 +100,7 @@ export abstract class BaseEntity {
         // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
         const { tableName } = getEntityMetadata(this, metadataContainer);
 
+        validateDataSourceInitialization();
         const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
         const { sql, params } = queryBuilder.select(tableName, conditions);
 
@@ -127,6 +131,7 @@ export abstract class BaseEntity {
         // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
         const { tableName } = getEntityMetadata(this, metadataContainer);
 
+        validateDataSourceInitialization();
         const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
         const { sql, params } = queryBuilder.select(tableName, conditions, 1);
 
@@ -156,6 +161,7 @@ export abstract class BaseEntity {
         // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
         const { tableName } = getEntityMetadata(this as unknown as EntityConstructor, metadataContainer);
 
+        validateDataSourceInitialization();
         const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
         const { sql, params } = queryBuilder.count(tableName, conditions);
 
@@ -182,11 +188,13 @@ export abstract class BaseEntity {
     }
 
     static async deleteAll(conditions: Record<string, SQLQueryBindings>): Promise<number> {
+        validateDataSourceInitialization();
         const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
         const logger = typeBunContainer.resolve<DbLogger>('DbLogger');
 
         // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
         const tableName = metadataContainer.getTableName(this as unknown as EntityConstructor);
+        validateDataSourceInitialization();
         const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
         const { sql, params } = queryBuilder.delete(tableName, conditions, true);
 
@@ -209,11 +217,13 @@ export abstract class BaseEntity {
         data: Record<string, SQLQueryBindings>,
         conditions: Record<string, SQLQueryBindings>
     ): Promise<number> {
+        validateDataSourceInitialization();
         const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
         const logger = typeBunContainer.resolve<DbLogger>('DbLogger');
 
         // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
         const tableName = metadataContainer.getTableName(this as unknown as EntityConstructor);
+        validateDataSourceInitialization();
         const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
         const { sql, params } = queryBuilder.update(tableName, data, conditions, true);
 
@@ -261,6 +271,7 @@ export abstract class BaseEntity {
 
         const conditions = buildPrimaryKeyConditions(this, primaryColumns);
 
+        validateDataSourceInitialization();
         const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
         const { sql, params } = queryBuilder.delete(tableName, conditions);
 
@@ -281,6 +292,7 @@ export abstract class BaseEntity {
             throw new Error('Cannot reload unsaved entity');
         }
 
+        validateDataSourceInitialization();
         const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
         const primaryColumns = metadataContainer.getPrimaryColumns(this.constructor as unknown as EntityConstructor);
 
@@ -307,6 +319,7 @@ export abstract class BaseEntity {
     }
 
     isChanged(): boolean {
+        validateDataSourceInitialization();
         const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
         const columns = metadataContainer.getColumns(this.constructor as unknown as EntityConstructor);
 
@@ -321,6 +334,7 @@ export abstract class BaseEntity {
 
     getChanges(): Record<string, { from: unknown; to: unknown }> {
         const changes: Record<string, { from: unknown; to: unknown }> = {};
+        validateDataSourceInitialization();
         const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
         const columns = metadataContainer.getColumns(this.constructor as unknown as EntityConstructor);
 
@@ -338,6 +352,7 @@ export abstract class BaseEntity {
 
     // Private methods
     private async _validate(): Promise<void> {
+        validateDataSourceInitialization();
         const logger = typeBunContainer.resolve<DbLogger>('DbLogger');
 
         const errors = await validate(this, {
@@ -369,6 +384,7 @@ export abstract class BaseEntity {
     }
 
     private async _insert(): Promise<void> {
+        validateDataSourceInitialization();
         const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
         const logger = typeBunContainer.resolve<DbLogger>('DbLogger');
 
@@ -401,6 +417,7 @@ export abstract class BaseEntity {
             }
         }
 
+        validateDataSourceInitialization();
         const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
         const { sql, params } = queryBuilder.insert(tableName, data);
 
@@ -429,6 +446,7 @@ export abstract class BaseEntity {
                 const conditions = buildPrimaryKeyConditions(this, primaryColumns);
 
                 if (Object.keys(conditions).length > 0) {
+                    validateDataSourceInitialization();
                     const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
                     const { sql, params } = queryBuilder.select(tableName, conditions, 1);
 
@@ -451,6 +469,7 @@ export abstract class BaseEntity {
     }
 
     private async _update(): Promise<void> {
+        validateDataSourceInitialization();
         const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
         const logger = typeBunContainer.resolve<DbLogger>('DbLogger');
 
@@ -470,6 +489,7 @@ export abstract class BaseEntity {
         // Build conditions from primary keys
         const conditions = buildPrimaryKeyConditions(this, primaryColumns);
 
+        validateDataSourceInitialization();
         const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
         const { sql, params } = queryBuilder.update(tableName, data, conditions);
 
@@ -486,6 +506,7 @@ export abstract class BaseEntity {
     }
 
     private _loadFromRow(row: Record<string, unknown>): void {
+        validateDataSourceInitialization();
         const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
         const columns = metadataContainer.getColumns(this.constructor as unknown as EntityConstructor);
 
@@ -515,12 +536,26 @@ export abstract class BaseEntity {
     }
 
     private _captureOriginalValues(): void {
-        const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
-        const columns = metadataContainer.getColumns(this.constructor as unknown as EntityConstructor);
+        try {
+            // Try to capture original values using metadata if available
+            validateDataSourceInitialization();
+            const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
+            const columns = metadataContainer.getColumns(this.constructor as unknown as EntityConstructor);
 
-        this._originalValues = {};
-        for (const [propertyName] of columns) {
-            this._originalValues[propertyName] = (this as Record<string, unknown>)[propertyName];
+            this._originalValues = {};
+            for (const [propertyName] of columns) {
+                this._originalValues[propertyName] = (this as Record<string, unknown>)[propertyName];
+            }
+        } catch (error) {
+            // If DataSource is not initialized, fall back to capturing all enumerable properties
+            // This allows build() to work without database initialization
+            this._originalValues = {};
+            for (const propertyName of Object.keys(this as Record<string, unknown>)) {
+                // Skip internal properties
+                if (!propertyName.startsWith('_')) {
+                    this._originalValues[propertyName] = (this as Record<string, unknown>)[propertyName];
+                }
+            }
         }
     }
 }

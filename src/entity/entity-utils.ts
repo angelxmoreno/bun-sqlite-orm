@@ -16,9 +16,30 @@ export interface EntityDependencies {
 }
 
 /**
+ * Validates that DataSource is properly initialized before database operations
+ */
+export function validateDataSourceInitialization(): void {
+    try {
+        // Try to resolve required services - if this succeeds, we're either properly initialized
+        // or in a test environment with mocked services
+        typeBunContainer.resolve<Database>('DatabaseConnection');
+        typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
+        typeBunContainer.resolve<DbLogger>('DbLogger');
+    } catch (error) {
+        // If any service resolution fails, the DataSource is not properly initialized
+        throw new Error(
+            'DataSource must be initialized before database operations. Call DataSource.initialize() first.'
+        );
+    }
+}
+
+/**
  * Resolves common dependencies used across entity methods
  */
 export function resolveDependencies(): EntityDependencies {
+    // Validate initialization before attempting to resolve dependencies
+    validateDataSourceInitialization();
+
     return {
         metadataContainer: typeBunContainer.resolve<MetadataContainer>('MetadataContainer'),
         logger: typeBunContainer.resolve<DbLogger>('DbLogger'),
