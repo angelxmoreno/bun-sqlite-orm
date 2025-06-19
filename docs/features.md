@@ -1,6 +1,6 @@
 # BunSQLiteORM Features
 
-## ✅ Completed Features (v1.0.0)
+## ✅ Completed Features (v1.2.0)
 
 ### Entity System
 - ✅ `@Entity` decorator for table mapping
@@ -10,9 +10,11 @@
 - ✅ Column types (text, integer, real, blob) optimized for SQLite
 - ✅ Column options (nullable, unique, JavaScript defaults, SQL defaults)
 - ✅ SQL defaults (`sqlDefault`) with CURRENT_TIMESTAMP and custom expressions
-- ✅ Database indexing with `@Index` decorator and column-level index support
-- ✅ Composite indexes, unique indexes, and auto-generated index names
+- ✅ **Database indexing with `@Index` decorator and column-level index support**
+- ✅ **Composite indexes, unique indexes, and auto-generated index names**
 - ✅ TypeScript type inference and reflection-based metadata
+- ✅ **Proper boolean type conversion between JavaScript and SQLite**
+- ✅ **Comprehensive date/timezone handling with configurable storage formats**
 
 ### Active Record Pattern
 - ✅ Static methods (create, get, find, findFirst, count, exists, deleteAll, updateAll)
@@ -24,11 +26,13 @@
 ### Database Operations
 - ✅ Bun:SQLite native integration with optimal performance
 - ✅ Database initialization and connection management
+- ✅ **Initialization validation preventing operations before DataSource setup**
 - ✅ Automatic schema creation from entity metadata
 - ✅ SQL query generation optimized for SQLite syntax
-- ✅ Parameterized queries for SQL injection protection
+- ✅ **Type-safe parameterized queries with SQLQueryBindings enforcement**
 - ✅ Support for file-based and in-memory databases
 - ✅ SQL defaults with automatic entity reload after INSERT
+- ✅ **Proper statement finalization for memory leak prevention**
 
 ### Auto Migrations
 - ✅ Automatic table creation from entity definitions
@@ -45,9 +49,10 @@
 - ✅ Support for optional field validation and custom validation rules
 
 ### Development & Quality Assurance
-- ✅ Comprehensive test suite (98%+ coverage)
+- ✅ Comprehensive test suite (398 tests, 98%+ coverage)
 - ✅ Unit tests for all core components
 - ✅ Integration tests for end-to-end workflows
+- ✅ **Dedicated initialization validation test suite**
 - ✅ TypeScript strict mode compliance
 - ✅ ESLint and Biome code quality enforcement
 - ✅ Automated CI/CD with GitHub Actions
@@ -164,15 +169,19 @@
 
 ## 📊 Current Status Summary
 
-**Overall Completion: ~85% of MVP features**
+**Overall Completion: ~95% of MVP features**
 
 - ✅ **Core ORM Functionality**: Complete and production-ready
 - ✅ **Active Record Pattern**: Fully implemented with comprehensive API
 - ✅ **Validation System**: Complete integration with class-validator
 - ✅ **Database Operations**: Optimized for Bun:SQLite with full feature set
+- ✅ **Database Indexing**: Complete support for simple, composite, and unique indexes
+- ✅ **Type Safety & Reliability**: Comprehensive type enforcement and error prevention
 - ✅ **Development Infrastructure**: Professional-grade tooling and documentation
 - ✅ **Quality Assurance**: Comprehensive testing and code quality measures
 
-**Next Major Milestone: Relations Support (v1.1.0)**
+**Current Release: v1.2.0 - Production Ready**
 
-The ORM is ready for production use for applications that don't require complex relational data modeling. The foundation is solid and extensible for adding advanced features in future releases.
+**Next Major Milestone: Relations Support (v1.3.0) and PinoDbLogger completion (v2.0.0)**
+
+The ORM is fully ready for production use for applications that don't require complex relational data modeling. All core features are implemented, tested, and optimized. The foundation is solid and extensible for adding advanced features in future releases.

@@ -110,17 +110,30 @@ it("should throw DatabaseError on unique constraint violation", async () => {
 ```
 tests/
 ├── unit/
-│   ├── entities/
-│   │   ├── user.test.ts
-│   │   └── post.test.ts
-│   ├── migrations/
-│   │   └── migration-generator.test.ts
-│   └── metadata/
-│       └── metadata-container.test.ts
+│   ├── entity/
+│   │   ├── base-entity.test.ts
+│   │   └── base-entity-initialization.test.ts
+│   ├── decorators/
+│   │   ├── decorators.test.ts
+│   │   └── index-decorator.test.ts
+│   ├── utils/
+│   │   └── date-utils.test.ts
+│   ├── container/
+│   │   └── container.test.ts
+│   ├── data-source/
+│   │   └── data-source.test.ts
+│   ├── logger/
+│   │   └── logger.test.ts
+│   └── sql/
+│       ├── sql-generator.test.ts
+│       └── query-utils.test.ts
 ├── integration/
 │   ├── active-record.test.ts
-│   ├── relationships.test.ts
-│   └── migrations.test.ts
+│   ├── column-indexing.test.ts
+│   ├── boolean-conversion.test.ts
+│   ├── sql-defaults.test.ts
+│   ├── parameter-binding-types.test.ts
+│   └── statement-finalization.test.ts
 └── helpers/
     ├── test-datasource.ts
     └── test-utils.ts
@@ -130,16 +143,15 @@ tests/
 ```typescript
 // test/helpers/test-datasource.ts
 export async function createTestDataSource(entities: Function[]) {
-  const testDbPath = `./test-${Date.now()}-${Math.random().toString(36)}.db`;
+  const testDbPath = `./tests/test-${Date.now()}-${Math.random().toString(36)}.db`;
   
   const dataSource = new DataSource({
     database: testDbPath,
     entities,
-    migrations: ["./migrations/*.ts"]
+    // No migrations array needed - auto-migration handles schema creation
   });
   
   await dataSource.initialize();
-  await dataSource.runMigrations();
   
   return { dataSource, testDbPath };
 }
@@ -274,11 +286,24 @@ Reflect.getMetadata = mock((key: unknown, target: object, property?: string | sy
 ## Test Data Management
 
 ### Isolated Test Data
-- Each test file gets its own database
+- Each test file gets its own database in `tests/` directory
 - Tests don't interfere with each other
 - Parallel test execution supported
+- **398 total tests** across unit and integration suites
 
 ### Test Data Cleanup
 - Database files automatically deleted after tests
 - Optional data clearing between tests within same file
 - No persistent test data pollution
+- Proper gitignore configuration for test databases
+
+### Test Coverage
+- **98%+ code coverage** maintained across all modules
+- Unit tests for all core components and edge cases
+- Integration tests for end-to-end workflows
+- **Specialized test suites** for v1.2.0 features:
+  - Initialization validation testing
+  - Boolean type conversion testing
+  - Date/timezone handling testing
+  - Column indexing testing
+  - Statement finalization testing
