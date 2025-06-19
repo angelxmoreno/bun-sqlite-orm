@@ -10,10 +10,35 @@
 5. [X] add workflow checks
 6. [X] link to license file
 7. [X] tests are failing
+8. [X] finish the integration tests
+9. [X] move test db to test dir and update gitignore
+
+## v1.2.0 Completed Features ✅
+1. [X] **Column Indexing Support** → [GitHub Issue #24](https://github.com/angelxmoreno/bun-sqlite-orm/issues/24)
+   - Simple column indexes with `@Column({ index: true })`
+   - Named indexes with `@Index('name')` decorator
+   - Composite indexes with `@Index('name', ['col1', 'col2'])`
+   - Unique indexes and auto-generated index names
+2. [X] **Boolean Type Conversion** → [GitHub Issue #12](https://github.com/angelxmoreno/bun-sqlite-orm/issues/12)
+   - Proper conversion between JavaScript boolean and SQLite INTEGER (1/0)
+   - Type-safe boolean handling in `_loadFromRow` method
+3. [X] **Date/Timezone Issues** → [GitHub Issue #11](https://github.com/angelxmoreno/bun-sqlite-orm/issues/11)
+   - Comprehensive date utility system with timezone awareness
+   - Configurable date storage formats (ISO string, unix timestamps)
+   - Timezone warning system for ambiguous date strings
+4. [X] **Database Initialization Validation** → [GitHub Issue #7](https://github.com/angelxmoreno/bun-sqlite-orm/issues/7)
+   - Prevents database operations before DataSource.initialize()
+   - Clear error messages with actionable guidance
+   - Comprehensive validation across all BaseEntity methods
+5. [X] **Parameter Type Safety** → [GitHub Issue #6](https://github.com/angelxmoreno/bun-sqlite-orm/issues/6)
+   - Enforced SQLQueryBindings type throughout codebase
+   - Type-safe parameter binding with proper validation
+6. [X] **Statement Memory Leaks** → [GitHub Issue #5](https://github.com/angelxmoreno/bun-sqlite-orm/issues/5)
+   - Proper statement finalization in BaseEntity._executeQuery
+   - Memory leak prevention for dynamic queries
 
 ## Current Tasks 🚧
-1. [ ] finish the integration tests
-2. [ ] move test db to test dir and update gitignore
+1. [ ] Complete PinoDbLogger implementation (moved to v2.0.0)
 
 ## Documentation Enhancement Plan 📚
 
@@ -57,12 +82,13 @@
 - [ ] **WAL mode and performance optimization** → [GitHub Issue #13](https://github.com/angelxmoreno/bun-sqlite-orm/issues/13)
 - [ ] **Safe integers support** → [GitHub Issue #14](https://github.com/angelxmoreno/bun-sqlite-orm/issues/14)
 
-**Bug Fixes:**
-- [ ] **Statement finalization memory leaks** → [GitHub Issue #5](https://github.com/angelxmoreno/bun-sqlite-orm/issues/5)
-- [ ] **Parameter type safety** → [GitHub Issue #6](https://github.com/angelxmoreno/bun-sqlite-orm/issues/6)
-- [ ] **Connection validation** → [GitHub Issue #7](https://github.com/angelxmoreno/bun-sqlite-orm/issues/7)
-- [ ] **Date conversion issues** → [GitHub Issue #11](https://github.com/angelxmoreno/bun-sqlite-orm/issues/11)
-- [ ] **Boolean type conversion** → [GitHub Issue #12](https://github.com/angelxmoreno/bun-sqlite-orm/issues/12)
+**Bug Fixes (✅ Completed in v1.2.0):**
+- [X] **Statement finalization memory leaks** → [GitHub Issue #5](https://github.com/angelxmoreno/bun-sqlite-orm/issues/5)
+- [X] **Parameter type safety** → [GitHub Issue #6](https://github.com/angelxmoreno/bun-sqlite-orm/issues/6)
+- [X] **Connection validation** → [GitHub Issue #7](https://github.com/angelxmoreno/bun-sqlite-orm/issues/7)
+- [X] **Date conversion issues** → [GitHub Issue #11](https://github.com/angelxmoreno/bun-sqlite-orm/issues/11)
+- [X] **Boolean type conversion** → [GitHub Issue #12](https://github.com/angelxmoreno/bun-sqlite-orm/issues/12)
+- [X] **Column indexing support** → [GitHub Issue #24](https://github.com/angelxmoreno/bun-sqlite-orm/issues/24)
 
 **Low Priority Features:**
 - [ ] **Database serialization/backup** → [GitHub Issue #15](https://github.com/angelxmoreno/bun-sqlite-orm/issues/15)
