@@ -6,6 +6,7 @@ import type { ValidationErrorDetail } from '../errors';
 import type { MetadataContainer } from '../metadata';
 import type { QueryBuilder } from '../sql';
 import type { DbLogger, EntityConstructor, SQLQueryBindings } from '../types';
+import { storageToDate } from '../utils/date-utils';
 import {
     buildDataObject,
     buildPrimaryKeyConditions,
@@ -498,9 +499,9 @@ export abstract class BaseEntity {
                 if (metadata.type === 'integer' && tsType === Boolean) {
                     (this as Record<string, unknown>)[propertyName] = value === 1;
                 }
-                // Convert ISO string back to Date
-                else if (metadata.type === 'text' && typeof value === 'string' && tsType === Date) {
-                    (this as Record<string, unknown>)[propertyName] = new Date(value);
+                // Convert stored date values back to Date objects using DateUtils
+                else if (tsType === Date && (typeof value === 'string' || typeof value === 'number')) {
+                    (this as Record<string, unknown>)[propertyName] = storageToDate(value);
                 }
                 // Default: use value as-is
                 else {

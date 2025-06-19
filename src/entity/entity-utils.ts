@@ -3,6 +3,7 @@ import { typeBunContainer } from '../container';
 import { DatabaseError, EntityNotFoundError } from '../errors';
 import type { MetadataContainer } from '../metadata';
 import type { DbLogger, EntityConstructor, SQLQueryBindings } from '../types';
+import { dateToStorage } from '../utils/date-utils';
 
 /**
  * Utility functions to reduce code duplication in BaseEntity
@@ -61,14 +62,14 @@ export function isValidSQLQueryBinding(value: unknown): value is SQLQueryBinding
 }
 
 /**
- * Converts a value to a valid SQLQueryBinding, handling Date conversion
+ * Converts a value to a valid SQLQueryBinding, handling Date conversion using DateUtils
  */
 export function toSQLQueryBinding(value: unknown): SQLQueryBindings | undefined {
     if (value === undefined) {
         return undefined;
     }
 
-    const convertedValue = value instanceof Date ? value.toISOString() : value;
+    const convertedValue = value instanceof Date ? dateToStorage(value) : value;
 
     return isValidSQLQueryBinding(convertedValue) ? convertedValue : undefined;
 }
