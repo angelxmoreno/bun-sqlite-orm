@@ -12,8 +12,7 @@ The main entry point that users interact with. Handles all internal setup and co
 ```typescript
 const dataSource = new DataSource({
   database: "./app.db",
-  entities: [User, Post, Comment],
-  migrations: ["./migrations/*.ts"]
+  entities: [User, Post, Comment]
 });
 
 await dataSource.initialize();
@@ -28,6 +27,7 @@ const user = await User.create({ email: "test@example.com" });
 - Initialize MetadataContainer
 - Process entity decorators and populate metadata
 - Set up BaseEntity with container reference
+- Auto-create tables from entity metadata
 
 ### Dependency Injection Container
 
@@ -113,6 +113,7 @@ class BaseEntity {
    - DataSource.initialize() creates child container
    - Database connection and MetadataContainer registered
    - Entity decorators processed, metadata stored
+   - Tables automatically created from entity metadata
    - BaseEntity configured with container
 
 2. **Runtime Operations:**
@@ -121,48 +122,56 @@ class BaseEntity {
    - MetadataContainer provides schema information
    - Database operations executed via Bun:SQLite
 
-3. **Migrations:**
-   - Migration generator resolves MetadataContainer
-   - Compares current entity metadata vs last snapshot
-   - Generates diff-based migration files
-   - Executes migrations via database connection
-   - Saves new metadata snapshot after successful migration
+3. **Auto-Migration:**
+   - Tables are automatically created during DataSource.initialize()
+   - Schema is synchronized with entity metadata
+   - No manual migration files needed
 
-## Migration System
+## Auto-Migration System
 
-TypeBunOrm uses **entity-driven migrations** where entity files are the source of truth, not the database.
+TypeBunOrm uses **automatic schema synchronization** where entity decorators define the database schema, and tables are created automatically during initialization.
 
-### Auto-generation Process
+### How Auto-Migration Works
 
-1. **Entity Metadata Snapshots**
-   - After each migration, save current entity metadata to `migrations/.metadata/last-snapshot.json`
-   - Snapshot includes table names, columns, types, constraints
+1. **Entity Processing**
+   - During `DataSource.initialize()`, all entity classes are processed
+   - Decorators (`@Entity`, `@Column`, `@Index`, etc.) are read to build metadata
+   - Table schemas are generated from entity metadata
 
-2. **Diff Generation**
+2. **Table Creation**
    ```typescript
-   const currentMetadata = MetadataContainer.getAllEntities();
-   const lastSnapshot = readLastSnapshot();
-   const diff = generateDiff(lastSnapshot, currentMetadata);
+   // Tables are created automatically based on entity definitions
+   @Entity('users')
+   class User extends BaseEntity {
+     @PrimaryGeneratedColumn()
+     id!: number;
+     
+     @Column({ type: 'text', unique: true })
+     @Index('idx_users_email')
+     email!: string;
+     
+     @Column({ type: 'text' })
+     name!: string;
+   }
    
-   // Generates migration with:
-   // - ADD COLUMN for new properties
-   // - DROP COLUMN for removed properties  
-   // - ALTER COLUMN for type changes
-   // - CREATE TABLE for new entities
-   // - DROP TABLE for removed entities
+   // After dataSource.initialize(), 'users' table exists with:
+   // - id INTEGER PRIMARY KEY AUTOINCREMENT
+   // - email TEXT UNIQUE
+   // - name TEXT
+   // - INDEX idx_users_email ON users(email)
    ```
 
-3. **Migration Workflow**
-   ```bash
-   bun migration:generate  # Compares entities vs snapshot, creates migration file
-   bun migration:run       # Executes pending migrations, updates snapshot
-   ```
+3. **Schema Synchronization**
+   - Tables are created if they don't exist
+   - Indexes are created based on `@Index` decorators and column `index: true` options
+   - No manual migration files needed
 
 ### Benefits
-- **Entity files are source of truth** - Database schema follows code changes
-- **No manual SQL** - Developers work only with TypeScript decorators
-- **Reversible migrations** - Down migrations generated from diffs
-- **Safe schema changes** - Migration system validates and generates proper SQL
+- **Zero configuration** - Just define entities and run
+- **Entity files are source of truth** - Database schema follows entity definitions  
+- **No migration files** - Schema is automatically synchronized
+- **Fast development** - No need to write or manage migrations
+- **Type safety** - Schema is always in sync with TypeScript definitions
 
 ## Architecture Benefits
 
