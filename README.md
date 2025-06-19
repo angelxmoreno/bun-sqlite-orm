@@ -485,8 +485,8 @@ The project maintains high test coverage with comprehensive unit and integration
 
 - [Architecture Overview](./docs/architecture.md)
 - [Testing Strategy](./docs/testing-strategy.md)
-- [Quality Tools Setup](./docs/quality-tools-setup.md)
 - [Base Methods Reference](./docs/base-methods.md)
+- [AI Assistant Guide](./llm.txt) - Comprehensive reference for AI assistants and code generation tools
 
 ## 🤝 Contributing
 

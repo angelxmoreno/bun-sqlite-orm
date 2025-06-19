@@ -1,0 +1,546 @@
+# bun-sqlite-orm
+
+A lightweight, production-ready TypeScript ORM for Bun runtime with native SQLite integration.
+
+Version: v1.2.0
+
+## Project Overview
+
+bun-sqlite-orm provides a modern Active Record pattern ORM built specifically for Bun's native SQLite driver. It offers decorator-based entity definitions, comprehensive validation, automatic schema management, and type-safe database operations.
+
+## Architecture
+
+- **Active Record Pattern**: Entities extend BaseEntity with static and instance methods
+- **Decorator-based**: Uses TypeScript decorators for entity and column definitions
+- **Auto-migration**: Automatic table creation from entity metadata
+- **Type Safety**: Full TypeScript integration with SQLQueryBindings enforcement
+- **Validation**: Built-in class-validator integration
+- **Bun:SQLite Integration**: Optimized for Bun's native SQLite performance
+
+## Key Features
+
+### Entity System
+- `@Entity` decorator for table mapping
+- `@Column` decorator with comprehensive options (nullable, unique, defaults)
+- `@PrimaryGeneratedColumn` for auto-increment IDs and UUID generation
+- `@PrimaryColumn` for custom primary keys
+- **Database indexing** with `@Index` decorator and column-level index support
+- **Composite indexes** and unique indexes with auto-generated names
+- **Boolean type conversion** between JavaScript and SQLite
+- **Date/timezone handling** with configurable storage formats
+
+### Active Record Operations
+- Static methods: `create()`, `get()`, `find()`, `findFirst()`, `count()`, `exists()`
+- Bulk operations: `deleteAll()`, `updateAll()` with conditional filtering
+- Instance methods: `save()`, `update()`, `remove()`, `reload()`, `isNew()`, `isChanged()`
+- Entity lifecycle and dirty checking with `getChanges()`
+- Build pattern for entity creation without immediate persistence
+
+### Database Features
+- **Initialization validation** preventing operations before DataSource setup
+- **Type-safe parameterized queries** with SQLQueryBindings enforcement
+- **Statement finalization** for memory leak prevention
+- File-based and in-memory database support
+- SQL defaults with automatic entity reload after INSERT
+- Comprehensive error handling with custom error types
+
+### Validation
+- Full class-validator integration with automatic validation
+- Validation during save/create operations
+- Detailed error reporting with property-level messages
+- Custom validation rules and optional field validation
+
+## Basic Usage Examples
+
+### Entity Definition
+
+```typescript
+import { BaseEntity, Entity, PrimaryGeneratedColumn, Column, Index } from 'bun-sqlite-orm';
+import { IsEmail, IsNotEmpty, MinLength } from 'class-validator';
+
+@Entity('users')
+@Index('idx_user_email_active', ['email', 'isActive'])
+export class User extends BaseEntity {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column({ type: 'text', unique: true })
+  @IsEmail()
+  email!: string;
+
+  @Column({ type: 'text' })
+  @IsNotEmpty()
+  @MinLength(2)
+  name!: string;
+
+  @Column({ type: 'integer', sqlDefault: 1 })
+  isActive!: boolean;
+
+  @Column({ type: 'text', nullable: true, index: true })
+  department?: string;
+
+  @Column({ type: 'text', sqlDefault: 'CURRENT_TIMESTAMP' })
+  createdAt!: string;
+}
+```
+
+### DataSource Setup
+
+```typescript
+import { DataSource } from 'bun-sqlite-orm';
+
+const dataSource = new DataSource({
+  database: './app.db', // or ':memory:' for in-memory
+  entities: [User]
+});
+
+await dataSource.initialize();
+```
+
+### CRUD Operations
+
+```typescript
+// Create and save
+const user = User.build({
+  email: 'john@example.com',
+  name: 'John Doe',
+  department: 'Engineering'
+});
+await user.save();
+
+// Create directly
+const user2 = await User.create({
+  email: 'jane@example.com',
+  name: 'Jane Smith'
+});
+
+// Find operations
+const user = await User.get(1);
+const users = await User.find({ department: 'Engineering' });
+const firstActive = await User.findFirst({ isActive: true });
+
+// Conditional operations
+const engineeringCount = await User.count({ department: 'Engineering' });
+const userExists = await User.exists({ email: 'john@example.com' });
+
+// Update operations
+user.name = 'John Smith';
+await user.save(); // Only updates changed fields
+
+// Bulk operations
+await User.updateAll({ isActive: false }, { department: 'Sales' });
+await User.deleteAll({ isActive: false });
+```
+
+### Advanced Entity Features
+
+```typescript
+@Entity('posts')
+export class Post extends BaseEntity {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column({ type: 'text' })
+  @IsNotEmpty()
+  title!: string;
+
+  @Column({ type: 'text' })
+  content!: string;
+
+  @Column({ type: 'integer' })
+  authorId!: number;
+
+  @Column({ type: 'text', sqlDefault: 'CURRENT_TIMESTAMP' })
+  createdAt!: string;
+
+  @Column({ type: 'text', sqlDefault: 'CURRENT_TIMESTAMP' })
+  updatedAt!: string;
+
+  // Entity lifecycle methods
+  async beforeSave(): Promise<void> {
+    if (this.isChanged()) {
+      this.updatedAt = new Date().toISOString();
+    }
+  }
+
+  // Custom instance methods
+  isRecent(): boolean {
+    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    return new Date(this.createdAt) > dayAgo;
+  }
+
+  // Static helper methods
+  static async findByAuthor(authorId: number): Promise<Post[]> {
+    return this.find({ authorId });
+  }
+
+  static async findRecent(limit = 10): Promise<Post[]> {
+    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    return this.findFirst({ createdAt: dayAgo }); // Simplified example
+  }
+}
+```
+
+### Complex Validation
+
+```typescript
+import { IsEnum, ValidateIf, IsPositive } from 'class-validator';
+
+enum UserRole {
+  ADMIN = 'admin',
+  USER = 'user',
+  MODERATOR = 'moderator'
+}
+
+@Entity('users')
+export class User extends BaseEntity {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column({ type: 'text' })
+  @IsEmail()
+  email!: string;
+
+  @Column({ type: 'text' })
+  @IsEnum(UserRole)
+  role!: UserRole;
+
+  @Column({ type: 'integer', nullable: true })
+  @ValidateIf(o => o.role === UserRole.ADMIN)
+  @IsPositive()
+  adminLevel?: number;
+
+  @Column({ type: 'text', nullable: true })
+  @ValidateIf(o => !!o.adminLevel)
+  @IsNotEmpty()
+  department?: string;
+}
+
+// Usage with validation
+try {
+  const user = await User.create({
+    email: 'admin@example.com',
+    role: UserRole.ADMIN,
+    adminLevel: 5,
+    department: 'IT'
+  });
+} catch (error) {
+  if (error.name === 'ValidationError') {
+    console.log('Validation failed:', error.details);
+  }
+}
+```
+
+### Database Indexing
+
+```typescript
+@Entity('products')
+@Index('idx_product_category_price', ['category', 'price'])
+@Index('idx_product_sku', ['sku'], { unique: true })
+export class Product extends BaseEntity {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column({ type: 'text', index: true }) // Simple index
+  sku!: string;
+
+  @Column({ type: 'text', index: true })
+  category!: string;
+
+  @Column({ type: 'real' })
+  price!: number;
+
+  @Column({ type: 'integer', sqlDefault: 0 })
+  stock!: number;
+}
+```
+
+### Error Handling
+
+```typescript
+import { DatabaseError, EntityNotFoundError, ValidationError } from 'bun-sqlite-orm';
+
+try {
+  const user = await User.get(999);
+} catch (error) {
+  if (error instanceof EntityNotFoundError) {
+    console.log('User not found');
+  } else if (error instanceof DatabaseError) {
+    console.log('Database error:', error.message);
+  }
+}
+
+try {
+  await User.create({ email: 'invalid-email' });
+} catch (error) {
+  if (error instanceof ValidationError) {
+    console.log('Validation errors:', error.details);
+  }
+}
+```
+
+### State Management and Dirty Checking
+
+```typescript
+const user = await User.get(1);
+console.log(user.isNew()); // false
+console.log(user.isChanged()); // false
+
+user.name = 'New Name';
+console.log(user.isChanged()); // true
+console.log(user.getChanges()); // ['name']
+
+await user.save(); // Only updates changed fields
+console.log(user.isChanged()); // false
+
+await user.reload(); // Refresh from database
+```
+
+## Common Patterns
+
+### Repository-like Static Methods
+
+```typescript
+export class User extends BaseEntity {
+  // Find active users
+  static async findActive(): Promise<User[]> {
+    return this.find({ isActive: true });
+  }
+
+  // Find by email domain
+  static async findByDomain(domain: string): Promise<User[]> {
+    // Note: This would require advanced query builder in future versions
+    // Current implementation focuses on exact matches
+    const users = await this.find({});
+    return users.filter(u => u.email.endsWith(`@${domain}`));
+  }
+
+  // Bulk activation
+  static async activateUsers(userIds: number[]): Promise<void> {
+    // In production, you'd want transactions for this
+    for (const id of userIds) {
+      await this.updateAll({ isActive: true }, { id });
+    }
+  }
+}
+```
+
+### Entity Composition
+
+```typescript
+@Entity('user_profiles')
+export class UserProfile extends BaseEntity {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column({ type: 'integer', unique: true })
+  userId!: number;
+
+  @Column({ type: 'text', nullable: true })
+  bio?: string;
+
+  @Column({ type: 'text', nullable: true })
+  avatar?: string;
+
+  static async findByUserId(userId: number): Promise<UserProfile | null> {
+    return this.findFirst({ userId });
+  }
+
+  static async createForUser(userId: number, data: Partial<UserProfile>): Promise<UserProfile> {
+    return this.create({ ...data, userId });
+  }
+}
+```
+
+### Data Migration Patterns
+
+```typescript
+// Entity evolution example
+@Entity('users_v2')
+export class UserV2 extends BaseEntity {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Column({ type: 'text' })
+  email!: string;
+
+  @Column({ type: 'text' })
+  firstName!: string;
+
+  @Column({ type: 'text' })
+  lastName!: string;
+
+  // Migration helper
+  static async migrateFromV1(): Promise<void> {
+    // This would require custom migration logic
+    // Current auto-migration creates tables from scratch
+    console.log('Migration logic would go here');
+  }
+}
+```
+
+## Testing Patterns
+
+```typescript
+// Test setup with in-memory database
+import { DataSource } from 'bun-sqlite-orm';
+
+describe('User Entity', () => {
+  let dataSource: DataSource;
+
+  beforeAll(async () => {
+    dataSource = new DataSource({
+      database: ':memory:',
+      entities: [User]
+    });
+    await dataSource.initialize();
+  });
+
+  afterAll(async () => {
+    await dataSource.destroy();
+  });
+
+  beforeEach(async () => {
+    // Clean up between tests
+    await User.deleteAll({});
+  });
+
+  test('should create user with validation', async () => {
+    const user = await User.create({
+      email: 'test@example.com',
+      name: 'Test User'
+    });
+
+    expect(user.id).toBeDefined();
+    expect(user.email).toBe('test@example.com');
+    expect(user.isActive).toBe(true); // Default value
+  });
+});
+```
+
+## Performance Considerations
+
+### Bulk Operations
+```typescript
+// Efficient bulk creation
+const users = await Promise.all([
+  User.create({ email: 'user1@example.com', name: 'User 1' }),
+  User.create({ email: 'user2@example.com', name: 'User 2' }),
+  User.create({ email: 'user3@example.com', name: 'User 3' })
+]);
+
+// Efficient bulk updates
+await User.updateAll({ isActive: false }, { department: 'Deprecated' });
+```
+
+### Indexing Strategy
+```typescript
+// Strategic indexing for query performance
+@Entity('orders')
+@Index('idx_orders_user_date', ['userId', 'createdAt'])
+@Index('idx_orders_status', ['status'])
+export class Order extends BaseEntity {
+  @Column({ type: 'integer', index: true }) // Foreign key index
+  userId!: number;
+
+  @Column({ type: 'text', index: true }) // Frequently queried field
+  status!: string;
+
+  @Column({ type: 'text', sqlDefault: 'CURRENT_TIMESTAMP' })
+  createdAt!: string;
+}
+```
+
+## Configuration Options
+
+### DataSource Configuration
+```typescript
+const dataSource = new DataSource({
+  database: './production.db',
+  entities: [User, Post, Product],
+  logging: {
+    level: 'error', // 'debug' | 'info' | 'warn' | 'error'
+    logger: 'console' // or custom logger instance
+  }
+});
+```
+
+### Column Options
+```typescript
+@Column({
+  type: 'text',           // SQLite type
+  nullable: false,        // Allow NULL values
+  unique: true,          // Unique constraint
+  index: true,           // Create index
+  sqlDefault: 'CURRENT_TIMESTAMP', // SQL default value
+  default: 'active'      // JavaScript default value
+})
+```
+
+## Troubleshooting
+
+### Common Issues
+
+**DataSource not initialized**
+```
+Error: DataSource must be initialized before database operations. Call DataSource.initialize() first.
+```
+Solution: Always call `await dataSource.initialize()` before performing any entity operations.
+
+**Validation errors**
+```javascript
+ValidationError: Validation failed
+  - email: email must be an email
+  - name: name should not be empty
+```
+Solution: Ensure all required fields pass class-validator rules before saving.
+
+**Type conversion issues**
+- Booleans are stored as INTEGER (1/0) in SQLite
+- Dates should be handled as ISO strings or unix timestamps
+- Use proper TypeScript types matching your column definitions
+
+**Index naming conflicts**
+```
+Error: Index name already exists
+```
+Solution: Use unique index names or let the system auto-generate them.
+
+### Performance Tips
+
+1. **Use indexes strategically** - Index frequently queried columns and foreign keys
+2. **Batch operations** - Use bulk methods for multiple operations
+3. **Statement reuse** - The ORM automatically optimizes repeated queries
+4. **Memory management** - Proper statement finalization is handled automatically
+5. **In-memory testing** - Use `:memory:` databases for fast test execution
+
+### Memory Considerations
+
+- The ORM automatically handles statement finalization to prevent memory leaks
+- Large result sets are loaded into memory - consider pagination for very large datasets
+- Auto-migration creates tables at startup - schema is cached for performance
+
+## Related Documentation
+
+- [GitHub Repository](https://github.com/angelxmoreno/bun-sqlite-orm)
+- [NPM Package](https://www.npmjs.com/package/bun-sqlite-orm)
+- [Bun SQLite Documentation](https://bun.sh/docs/api/sqlite)
+- [class-validator Documentation](https://github.com/typestack/class-validator)
+- [TypeScript Decorators](https://www.typescriptlang.org/docs/handbook/decorators.html)
+
+## Current Limitations
+
+- **Relations**: No built-in relationship support (@OneToMany, @ManyToOne, etc.) - planned for v1.3.0
+- **Advanced Query Builder**: Limited to exact match queries - complex conditions planned for future versions
+- **Migrations**: Auto-migration only - manual migration system planned for v1.4.0
+- **Transactions**: No transaction wrapper methods - planned for v1.3.0
+
+## Future Roadmap
+
+- **v1.3.0**: Comprehensive relationship support and basic transaction support
+- **v1.4.0**: Advanced query builder, manual migrations, entity lifecycle hooks
+- **v1.5.0**: Performance optimizations, extensions support, CLI tools
+
+---
+
+*This documentation is for bun-sqlite-orm v1.2.0. For the latest features and updates, check the GitHub repository.*
