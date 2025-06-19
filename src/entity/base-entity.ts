@@ -23,7 +23,6 @@ export abstract class BaseEntity {
 
     // Private helper for executing queries with proper statement management
     private static _executeQuery<T>(sql: string, params: SQLQueryBindings[], method: 'get' | 'all' | 'run'): T {
-        validateDataSourceInitialization();
         const db = typeBunContainer.resolve<Database>('DatabaseConnection');
         const stmt: Statement = db.prepare(sql);
 
@@ -65,7 +64,6 @@ export abstract class BaseEntity {
             );
         }
 
-        validateDataSourceInitialization();
         const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
         const primaryColumn = primaryColumns[0];
         const { sql, params } = queryBuilder.select(tableName, { [primaryColumn.propertyName]: id }, 1);
@@ -100,7 +98,6 @@ export abstract class BaseEntity {
         // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
         const { tableName } = getEntityMetadata(this, metadataContainer);
 
-        validateDataSourceInitialization();
         const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
         const { sql, params } = queryBuilder.select(tableName, conditions);
 
@@ -131,7 +128,6 @@ export abstract class BaseEntity {
         // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
         const { tableName } = getEntityMetadata(this, metadataContainer);
 
-        validateDataSourceInitialization();
         const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
         const { sql, params } = queryBuilder.select(tableName, conditions, 1);
 
@@ -161,7 +157,6 @@ export abstract class BaseEntity {
         // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
         const { tableName } = getEntityMetadata(this as unknown as EntityConstructor, metadataContainer);
 
-        validateDataSourceInitialization();
         const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
         const { sql, params } = queryBuilder.count(tableName, conditions);
 
@@ -194,7 +189,6 @@ export abstract class BaseEntity {
 
         // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
         const tableName = metadataContainer.getTableName(this as unknown as EntityConstructor);
-        validateDataSourceInitialization();
         const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
         const { sql, params } = queryBuilder.delete(tableName, conditions, true);
 
@@ -223,7 +217,6 @@ export abstract class BaseEntity {
 
         // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
         const tableName = metadataContainer.getTableName(this as unknown as EntityConstructor);
-        validateDataSourceInitialization();
         const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
         const { sql, params } = queryBuilder.update(tableName, data, conditions, true);
 
@@ -271,7 +264,6 @@ export abstract class BaseEntity {
 
         const conditions = buildPrimaryKeyConditions(this, primaryColumns);
 
-        validateDataSourceInitialization();
         const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
         const { sql, params } = queryBuilder.delete(tableName, conditions);
 
@@ -292,7 +284,6 @@ export abstract class BaseEntity {
             throw new Error('Cannot reload unsaved entity');
         }
 
-        validateDataSourceInitialization();
         const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
         const primaryColumns = metadataContainer.getPrimaryColumns(this.constructor as unknown as EntityConstructor);
 
@@ -417,7 +408,6 @@ export abstract class BaseEntity {
             }
         }
 
-        validateDataSourceInitialization();
         const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
         const { sql, params } = queryBuilder.insert(tableName, data);
 
@@ -446,7 +436,6 @@ export abstract class BaseEntity {
                 const conditions = buildPrimaryKeyConditions(this, primaryColumns);
 
                 if (Object.keys(conditions).length > 0) {
-                    validateDataSourceInitialization();
                     const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
                     const { sql, params } = queryBuilder.select(tableName, conditions, 1);
 
@@ -489,7 +478,6 @@ export abstract class BaseEntity {
         // Build conditions from primary keys
         const conditions = buildPrimaryKeyConditions(this, primaryColumns);
 
-        validateDataSourceInitialization();
         const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
         const { sql, params } = queryBuilder.update(tableName, data, conditions);
 
@@ -506,7 +494,6 @@ export abstract class BaseEntity {
     }
 
     private _loadFromRow(row: Record<string, unknown>): void {
-        validateDataSourceInitialization();
         const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
         const columns = metadataContainer.getColumns(this.constructor as unknown as EntityConstructor);
 
@@ -538,7 +525,6 @@ export abstract class BaseEntity {
     private _captureOriginalValues(): void {
         try {
             // Try to capture original values using metadata if available
-            validateDataSourceInitialization();
             const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
             const columns = metadataContainer.getColumns(this.constructor as unknown as EntityConstructor);
 
