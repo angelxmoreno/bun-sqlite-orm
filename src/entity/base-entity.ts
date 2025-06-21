@@ -393,6 +393,36 @@ export abstract class BaseEntity {
         return changes;
     }
 
+    toJSON(): Record<string, unknown> {
+        try {
+            // Try to use entity metadata if DataSource is initialized
+            const metadataContainer = typeBunContainer.resolve<MetadataContainer>('MetadataContainer');
+            const columns = metadataContainer.getColumns(this.constructor as unknown as EntityConstructor);
+
+            const result: Record<string, unknown> = {};
+            for (const [propertyName] of columns) {
+                const value = (this as Record<string, unknown>)[propertyName];
+                if (value !== undefined) {
+                    result[propertyName] = value;
+                }
+            }
+
+            return result;
+        } catch (error) {
+            // Fallback: if DataSource is not initialized, return all non-internal properties
+            // This ensures toJSON() works even before database initialization
+            const result: Record<string, unknown> = {};
+            for (const [key, value] of Object.entries(this as Record<string, unknown>)) {
+                // Exclude internal ORM properties
+                if (!key.startsWith('_') && value !== undefined) {
+                    result[key] = value;
+                }
+            }
+
+            return result;
+        }
+    }
+
     // Private methods
     private async _validate(): Promise<void> {
         validateDataSourceInitialization();
