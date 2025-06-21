@@ -65,6 +65,10 @@ export type EntityConstructor = new () => unknown;
 // SQLite parameter types (from bun:sqlite)
 export type SQLQueryBindings = null | string | number | bigint | boolean | Uint8Array;
 
+// Types for composite key operations
+export type CompositeKeyValue = Record<string, SQLQueryBindings>;
+export type PrimaryKeyValue = SQLQueryBindings | CompositeKeyValue;
+
 // Helper type for static methods on entity classes
 export interface BaseEntityStatic {
     find(conditions: Record<string, unknown>): Promise<unknown[]>;

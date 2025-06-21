@@ -5,15 +5,32 @@ import type { EntityMetadata } from '../types';
 export class SqlGenerator {
     generateCreateTable(entity: EntityMetadata): string {
         const columns: string[] = [];
+        const primaryKeyColumns: string[] = [];
 
+        // Collect primary key columns
+        for (const [, column] of entity.columns) {
+            if (column.isPrimary) {
+                primaryKeyColumns.push(column.propertyName);
+            }
+        }
+
+        // Generate column definitions
         for (const [, column] of entity.columns) {
             let columnDef = `"${column.propertyName}" ${column.type.toUpperCase()}`;
 
-            if (column.isPrimary && column.isGenerated && column.generationStrategy === 'increment') {
+            // Handle single auto-increment primary key (SQLite special case)
+            if (
+                column.isPrimary &&
+                column.isGenerated &&
+                column.generationStrategy === 'increment' &&
+                primaryKeyColumns.length === 1
+            ) {
                 columnDef += ' PRIMARY KEY AUTOINCREMENT';
-            } else if (column.isPrimary) {
+            } else if (column.isPrimary && primaryKeyColumns.length === 1) {
+                // Single primary key without auto-increment
                 columnDef += ' PRIMARY KEY';
             }
+            // For composite primary keys, we'll add the constraint at the table level
 
             if (!column.nullable && !column.isPrimary) {
                 columnDef += ' NOT NULL';
@@ -31,6 +48,12 @@ export class SqlGenerator {
             }
 
             columns.push(columnDef);
+        }
+
+        // Add table-level PRIMARY KEY constraint for composite keys
+        if (primaryKeyColumns.length > 1) {
+            const quotedPrimaryKeys = primaryKeyColumns.map((col) => `"${col}"`).join(', ');
+            columns.push(`PRIMARY KEY (${quotedPrimaryKeys})`);
         }
 
         return `CREATE TABLE IF NOT EXISTS "${entity.tableName}" (${columns.join(', ')})`;

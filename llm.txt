@@ -23,7 +23,7 @@ bun-sqlite-orm provides a modern Active Record pattern ORM built specifically fo
 - `@Entity` decorator for table mapping
 - `@Column` decorator with comprehensive options (nullable, unique, defaults)
 - `@PrimaryGeneratedColumn` for auto-increment IDs and UUID generation
-- `@PrimaryColumn` for custom primary keys
+- `@PrimaryColumn` for custom primary keys and composite primary keys (multiple `@PrimaryColumn` decorators)
 - **Database indexing** with `@Index` decorator and column-level index support
 - **Composite indexes** and unique indexes with auto-generated names
 - **Boolean type conversion** between JavaScript and SQLite

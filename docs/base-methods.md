@@ -7,7 +7,7 @@
 - `User.build(data)` - Create entity without saving (equivalent to `new User()`)
 
 ### Finding
-- `User.get(id)` - Find by primary key
+- `User.get(id)` - Find by primary key (single: `get(1)` or composite: `get({ userId: 1, roleId: 2 })`)
 - `User.findFirst(conditions)` - Find first matching record
 - `User.find(conditions)` - Find all matching records
 
@@ -25,9 +25,49 @@
 - `user.save()` - Save entity (insert or update)
 - `user.update(data)` - Update entity with new data and save
 - `user.remove()` - Delete entity
-- `user.reload()` - Refresh entity from database
+- `user.reload()` - Refresh entity from database (works with single and composite keys)
 
 ### State
 - `user.isNew()` - Check if entity is unsaved
 - `user.isChanged()` - Check if entity has unsaved changes
 - `user.getChanges()` - Get changed attributes
+
+## Composite Primary Key Support
+
+All methods work seamlessly with composite primary keys:
+
+### Examples with Composite Keys
+
+```typescript
+@Entity('user_roles')
+class UserRole extends BaseEntity {
+    @PrimaryColumn() userId!: number;
+    @PrimaryColumn() roleId!: number;
+    @Column() assignedBy!: string;
+}
+
+// Finding by composite key
+const userRole = await UserRole.get({ userId: 1, roleId: 2 });
+
+// All operations work automatically
+await userRole.reload();
+await userRole.save();
+await userRole.remove();
+
+// Query operations
+const userRoles = await UserRole.find({ userId: 1 });
+const exists = await UserRole.exists({ userId: 1, roleId: 2 });
+const count = await UserRole.count({ userId: 1 });
+
+// Bulk operations
+await UserRole.deleteAll({ userId: 1 });
+await UserRole.updateAll({ assignedBy: 'system' }, { userId: 1 });
+```
+
+### Key Features
+
+- **Type Safety**: Full TypeScript support with compile-time validation
+- **Automatic Detection**: Methods automatically detect single vs composite keys
+- **Backward Compatibility**: Single key entities work exactly as before
+- **Flexible Notation**: Single keys support both `get(1)` and `get({ id: 1 })` syntax
+- **Clear Error Messages**: Comprehensive validation with helpful error messages
