@@ -4,7 +4,7 @@ import { BaseEntity } from '../../src/entity';
 import { clearTestData, createTestDataSource } from '../helpers/test-datasource';
 import type { TestDataSourceResult } from '../helpers/test-datasource';
 
-@Entity('users')
+@Entity('json_users')
 class User extends BaseEntity {
     @PrimaryGeneratedColumn('int')
     id!: number;
@@ -25,7 +25,7 @@ class User extends BaseEntity {
     createdAt!: string;
 }
 
-@Entity('user_profiles')
+@Entity('json_user_profiles')
 class UserProfile extends BaseEntity {
     @PrimaryColumn()
     userId!: number;
