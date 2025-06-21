@@ -35,7 +35,7 @@
     },
     "keywords": [
         "orm",
-        "typescript",
+        "bun sqlite orm",
         "bun",
         "database",
         "sqlite",

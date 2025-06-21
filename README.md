@@ -32,7 +32,7 @@
 - 🛠️ **Auto Migrations** - Automatic table creation from entity metadata, zero-config setup
 - 🔍 **Rich Querying** - Type-safe query methods with find, count, exists, and bulk operations
 - 📈 **Database Indexing** - Comprehensive index support with simple, composite, and unique indexes
-- 📝 **Flexible Primary Keys** - Support for auto-increment, UUID, and custom primary key strategies
+- 📝 **Flexible Primary Keys** - Support for auto-increment, UUID, custom, and composite primary key strategies
 - 🔒 **Validation & Safety** - Automatic entity validation with detailed error reporting
 - 📊 **Entity State Tracking** - Built-in change tracking and dirty state management
 - 🎨 **Decorator Driven** - Clean, declarative entity definitions using TypeScript decorators
@@ -125,6 +125,9 @@ const users = await User.find({ age: 30 });           // Find all matching
 const user = await User.get(1);                       // Find by primary key
 const firstUser = await User.findFirst({ name: 'John' }); // Find first match
 
+// Composite primary key queries
+const userRole = await UserRole.get({ userId: 1, roleId: 2 }); // Find by composite key
+
 // Aggregation methods
 const totalUsers = await User.count();                // Count all
 const adultCount = await User.count({ age: { gte: 18 } }); // Count with conditions
@@ -151,7 +154,7 @@ await User.deleteAll({ status: 'inactive' });
 | Decorator | Description | Example |
 |-----------|-------------|---------|
 | `@Entity(tableName?)` | Mark class as database entity | `@Entity('users')` |
-| `@PrimaryColumn()` | Define primary key column | `@PrimaryColumn() id!: string;` |
+| `@PrimaryColumn()` | Define primary key column (supports composite keys) | `@PrimaryColumn() id!: string;` |
 | `@PrimaryGeneratedColumn(strategy)` | Auto-generated primary key | `@PrimaryGeneratedColumn('uuid')` |
 | `@Column(options)` | Define regular column | `@Column({ type: 'text', nullable: true })` |
 | `@Index()` | Create index on property | `@Index() @Column() email!: string;` |
@@ -184,6 +187,19 @@ id!: string;
 // Manual primary key
 @PrimaryColumn()
 customId!: string;
+
+// Composite primary keys
+@Entity('user_roles')
+export class UserRole extends BaseEntity {
+    @PrimaryColumn()
+    userId!: number;
+
+    @PrimaryColumn()
+    roleId!: number;
+
+    @Column()
+    assignedAt!: string;
+}
 ```
 
 ### Database Indexing
@@ -329,6 +345,127 @@ export class User extends BaseEntity {
 - Automatically runs on `save()` and `create()` methods
 - Throws detailed `ValidationError` on validation failure
 - Preserves entity state on validation errors (won't save invalid data)
+
+## 🔑 Composite Primary Keys
+
+BunSQLiteORM provides complete support for composite primary keys, ideal for junction tables, many-to-many relationships, and multi-dimensional data models.
+
+### Defining Composite Primary Keys
+
+Use multiple `@PrimaryColumn()` decorators to create composite primary keys:
+
+```typescript
+@Entity('user_roles')
+export class UserRole extends BaseEntity {
+    @PrimaryColumn()
+    userId!: number;
+
+    @PrimaryColumn()
+    roleId!: number;
+
+    @Column()
+    assignedBy!: string;
+
+    @Column({ sqlDefault: 'CURRENT_TIMESTAMP' })
+    assignedAt!: Date;
+}
+
+@Entity('order_items')
+export class OrderItem extends BaseEntity {
+    @PrimaryColumn()
+    orderId!: string;
+
+    @PrimaryColumn()
+    productSku!: string;
+
+    @Column()
+    quantity!: number;
+
+    @Column()
+    unitPrice!: number;
+}
+```
+
+### Working with Composite Keys
+
+All standard Active Record methods work seamlessly with composite primary keys:
+
+```typescript
+// Create entities with composite keys
+const userRole = UserRole.build({
+    userId: 1,
+    roleId: 2,
+    assignedBy: 'admin',
+    assignedAt: new Date()
+});
+await userRole.save();
+
+// Find by composite primary key
+const role = await UserRole.get({ userId: 1, roleId: 2 });
+
+// Update and reload work automatically
+role.assignedBy = 'manager';
+await role.save();
+await role.reload(); // Refreshes from database
+
+// Remove by composite key
+await role.remove();
+
+// Query operations with composite key conditions
+const userRoles = await UserRole.find({ userId: 1 });
+const exists = await UserRole.exists({ userId: 1, roleId: 2 });
+const count = await UserRole.count({ userId: 1 });
+
+// Bulk operations
+await UserRole.deleteAll({ userId: 1 });
+await UserRole.updateAll({ assignedBy: 'system' }, { userId: 1 });
+```
+
+### Composite Key Features
+
+- **Type Safety**: Full TypeScript support with compile-time validation
+- **Automatic SQL Generation**: Generates proper `PRIMARY KEY (col1, col2)` constraints
+- **Backward Compatibility**: Single primary key entities work exactly as before
+- **Flexible Object Notation**: Single keys can use either `Entity.get(1)` or `Entity.get({ id: 1 })`
+- **Validation**: Comprehensive error messages for missing or invalid key properties
+- **Performance**: Optimized queries with proper primary key indexing
+
+### SQL Output
+
+BunSQLiteORM generates standards-compliant SQLite syntax for composite primary keys:
+
+```sql
+-- Generated table creation SQL
+CREATE TABLE IF NOT EXISTS "user_roles" (
+    "userId" INTEGER,
+    "roleId" INTEGER,
+    "assignedBy" TEXT NOT NULL,
+    "assignedAt" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY ("userId", "roleId")
+);
+```
+
+### Error Handling
+
+Composite primary keys include comprehensive validation and clear error messages:
+
+```typescript
+try {
+    // Missing required key property
+    await UserRole.get({ userId: 1 }); // Missing roleId
+} catch (error) {
+    console.log(error.message); 
+    // "Missing primary key property 'roleId' for entity UserRole"
+}
+
+try {
+    // Invalid key format for composite key entity
+    await UserRole.get(123); // Should be an object
+} catch (error) {
+    console.log(error.message);
+    // "Entity UserRole has 2 primary keys. Expected object with keys: userId, roleId"
+}
+```
 
 ## 📊 Entity State Tracking
 
