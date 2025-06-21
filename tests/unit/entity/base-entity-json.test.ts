@@ -188,8 +188,8 @@ describe('BaseEntity toJSON() Method', () => {
             const user = new JsonTestUser();
             user.name = 'Test User';
             // Simulate some internal properties that might exist
-            (user as Record<string, unknown>)._someInternalProp = 'should not appear';
-            (user as Record<string, unknown>).__proto_prop = 'should not appear';
+            (user as unknown as Record<string, unknown>)._someInternalProp = 'should not appear';
+            (user as unknown as Record<string, unknown>).__proto_prop = 'should not appear';
 
             const json = user.toJSON();
 
@@ -223,9 +223,11 @@ describe('BaseEntity toJSON() Method', () => {
         test('should handle null values correctly', async () => {
             const user = JsonTestUser.build({
                 name: 'Null Test',
-                email: null as string | null, // Explicitly set to null
                 age: 30,
             });
+
+            // Explicitly set email to null after construction
+            (user as unknown as { email: null }).email = null;
 
             const json = user.toJSON();
 

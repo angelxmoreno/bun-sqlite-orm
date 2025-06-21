@@ -32,8 +32,9 @@ bun-sqlite-orm provides a modern Active Record pattern ORM built specifically fo
 ### Active Record Operations
 - Static methods: `create()`, `get()`, `find()`, `findFirst()`, `count()`, `exists()`
 - Bulk operations: `deleteAll()`, `updateAll()` with conditional filtering
-- Instance methods: `save()`, `update()`, `remove()`, `reload()`, `isNew()`, `isChanged()`
+- Instance methods: `save()`, `update()`, `remove()`, `reload()`, `isNew()`, `isChanged()`, `toJSON()`
 - Entity lifecycle and dirty checking with `getChanges()`
+- **JSON serialization** with `toJSON()` method that excludes internal ORM properties for clean API responses
 - Build pattern for entity creation without immediate persistence
 
 ### Database Features

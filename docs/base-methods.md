@@ -31,6 +31,7 @@
 - `user.isNew()` - Check if entity is unsaved
 - `user.isChanged()` - Check if entity has unsaved changes
 - `user.getChanges()` - Get changed attributes
+- `user.toJSON()` - Get clean JSON representation (excludes internal ORM properties)
 
 ## Composite Primary Key Support
 
@@ -71,3 +72,40 @@ await UserRole.updateAll({ assignedBy: 'system' }, { userId: 1 });
 - **Backward Compatibility**: Single key entities work exactly as before
 - **Flexible Notation**: Single keys support both `get(1)` and `get({ id: 1 })` syntax
 - **Clear Error Messages**: Comprehensive validation with helpful error messages
+
+## JSON Serialization
+
+The `toJSON()` method provides clean entity serialization by excluding internal ORM properties:
+
+```typescript
+const user = await User.create({
+    name: 'John Doe',
+    email: 'john@example.com',
+    age: 30
+});
+
+// Before toJSON() - includes internal ORM state
+console.log(user);
+// Output includes: _isNew: false, _originalValues: {...}
+
+// With toJSON() - clean output
+console.log(user.toJSON());
+// Output: { id: 1, name: 'John Doe', email: 'john@example.com', age: 30, createdAt: '...' }
+
+// Automatic integration with JSON.stringify()
+const apiResponse = { users: [user] };
+JSON.stringify(apiResponse); // Uses toJSON() automatically
+
+// Works with all entity types including composite keys
+const userRole = await UserRole.get({ userId: 1, roleId: 2 });
+console.log(userRole.toJSON());
+// Output: { userId: 1, roleId: 2, assignedBy: 'admin' }
+```
+
+### Benefits
+
+- **Clean API Responses**: No internal ORM properties in JSON output
+- **Better Debugging**: Cleaner console.log output for development
+- **Automatic Integration**: Works seamlessly with JSON.stringify()
+- **Consistent Behavior**: Works with single and composite primary key entities
+- **Performance**: Optimized for both individual entities and large datasets
