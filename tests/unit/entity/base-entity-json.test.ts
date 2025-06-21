@@ -16,7 +16,7 @@ class JsonTestUser extends BaseEntity {
     @Column({ type: 'text', nullable: true })
     email?: string;
 
-    @Column({ type: 'integer', default: 0 })
+    @Column({ type: 'integer', sqlDefault: '0' })
     age!: number;
 
     @Column({ type: 'integer', sqlDefault: '1' })
