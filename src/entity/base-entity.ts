@@ -5,7 +5,7 @@ import { DatabaseError, EntityNotFoundError, ValidationError } from '../errors';
 import type { ValidationErrorDetail } from '../errors';
 import type { MetadataContainer } from '../metadata';
 import type { QueryBuilder } from '../sql';
-import type { DbLogger, EntityConstructor, SQLQueryBindings } from '../types';
+import type { CompositeKeyValue, DbLogger, EntityConstructor, PrimaryKeyValue, SQLQueryBindings } from '../types';
 import { storageToDate } from '../utils/date-utils';
 import {
     buildDataObject,
@@ -51,23 +51,64 @@ export abstract class BaseEntity {
         return instance;
     }
 
-    static async get<T extends BaseEntity>(this: new () => T, id: SQLQueryBindings): Promise<T> {
+    static async get<T extends BaseEntity>(this: new () => T, id: PrimaryKeyValue): Promise<T> {
         const { metadataContainer, logger } = resolveDependencies();
         // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
         const { tableName, primaryColumns } = getEntityMetadata(this, metadataContainer, true);
 
-        // Ensure single primary key - composite keys not yet supported in get() method
-        if (primaryColumns.length !== 1) {
+        const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
+        let conditions: Record<string, SQLQueryBindings>;
+
+        // Handle single primary key
+        if (primaryColumns.length === 1) {
+            const primaryColumn = primaryColumns[0];
+
+            // Support both single value and object notation for single keys
+            if (typeof id === 'object' && id !== null && !Buffer.isBuffer(id) && !(id instanceof Uint8Array)) {
+                const compositeId = id as CompositeKeyValue;
+                // Validate that the object has the expected primary key
+                if (!(primaryColumn.propertyName in compositeId)) {
+                    throw new Error(
+                        // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
+                        `Invalid composite key object for entity ${this.name}. Expected property: ${primaryColumn.propertyName}`
+                    );
+                }
+                conditions = { [primaryColumn.propertyName]: compositeId[primaryColumn.propertyName] };
+            } else {
+                // Traditional single value
+                conditions = { [primaryColumn.propertyName]: id as SQLQueryBindings };
+            }
+        }
+        // Handle composite primary keys
+        else if (primaryColumns.length > 1) {
+            if (typeof id !== 'object' || id === null || Buffer.isBuffer(id) || id instanceof Uint8Array) {
+                throw new Error(
+                    // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
+                    `Entity ${this.name} has ${primaryColumns.length} primary keys. Expected object with keys: ${primaryColumns.map((col) => col.propertyName).join(', ')}`
+                );
+            }
+
+            const compositeId = id as CompositeKeyValue;
+            conditions = {};
+
+            // Validate all primary key properties are provided
+            for (const primaryColumn of primaryColumns) {
+                if (!(primaryColumn.propertyName in compositeId)) {
+                    throw new Error(
+                        // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
+                        `Missing primary key property '${primaryColumn.propertyName}' for entity ${this.name}`
+                    );
+                }
+                conditions[primaryColumn.propertyName] = compositeId[primaryColumn.propertyName];
+            }
+        } else {
             throw new Error(
                 // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
-                `Entity ${this.name} has ${primaryColumns.length} primary keys. The get() method currently only supports entities with exactly one primary key. Use find() with conditions for composite key entities.`
+                `Entity ${this.name} has no primary keys defined`
             );
         }
 
-        const queryBuilder = typeBunContainer.resolve<QueryBuilder>('QueryBuilder');
-        const primaryColumn = primaryColumns[0];
-        const { sql, params } = queryBuilder.select(tableName, { [primaryColumn.propertyName]: id }, 1);
-
+        const { sql, params } = queryBuilder.select(tableName, conditions, 1);
         logger.debug(`Executing query: ${sql}`, { params });
 
         return executeWithErrorHandling(
@@ -75,7 +116,7 @@ export abstract class BaseEntity {
                 const row = BaseEntity._executeQuery<Record<string, unknown> | undefined>(sql, params, 'get');
                 if (!row) {
                     // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
-                    throw new EntityNotFoundError(this.name, { [primaryColumn.propertyName]: id });
+                    throw new EntityNotFoundError(this.name, conditions);
                 }
 
                 // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
@@ -291,17 +332,28 @@ export abstract class BaseEntity {
             throw new Error(`No primary key defined for entity ${this.constructor.name}`);
         }
 
-        // Ensure single primary key - composite keys not yet supported in reload() method
-        if (primaryColumns.length !== 1) {
-            throw new Error(
-                `Entity ${this.constructor.name} has ${primaryColumns.length} primary keys. The reload() method currently only supports entities with exactly one primary key.`
-            );
+        // Build primary key conditions from current entity values
+        const primaryKeyConditions = buildPrimaryKeyConditions(this, primaryColumns);
+
+        // Validate that all primary key values are present
+        if (Object.keys(primaryKeyConditions).length !== primaryColumns.length) {
+            throw new Error(`Cannot reload entity ${this.constructor.name}: missing primary key values`);
         }
 
-        const primaryColumn = primaryColumns[0];
-        const id = (this as Record<string, unknown>)[primaryColumn.propertyName];
+        // Use appropriate format for get() method
+        let keyValue: PrimaryKeyValue;
+        if (primaryColumns.length === 1) {
+            // Single primary key - use the value directly
+            const primaryColumn = primaryColumns[0];
+            keyValue = primaryKeyConditions[primaryColumn.propertyName];
+        } else {
+            // Composite primary key - use object notation
+            keyValue = primaryKeyConditions as CompositeKeyValue;
+        }
 
-        const fresh = await (this.constructor as unknown as { get: (id: unknown) => Promise<BaseEntity> }).get(id);
+        const fresh = await (this.constructor as unknown as { get: (id: PrimaryKeyValue) => Promise<BaseEntity> }).get(
+            keyValue
+        );
         Object.assign(this, fresh);
     }
 
