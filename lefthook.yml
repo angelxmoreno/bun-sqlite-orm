@@ -1,6 +1,10 @@
 pre-commit:
   parallel: true
   commands:
+    tests:
+      run: bun run test
+    tsc:
+      run: tsc --noEmit
     biome:
       run: bun run lint
       skip:

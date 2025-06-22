@@ -1,7 +1,8 @@
 import { Database } from 'bun:sqlite';
-import { DataSource } from '../../src/data-source';
-import { NullLogger } from '../../src/logger';
-import type { DbLogger, EntityConstructor, SQLQueryBindings } from '../../src/types';
+import { DataSource } from '../../src';
+import { NullLogger } from '../../src';
+
+import type { DbLogger, EntityConstructor, SQLQueryBindings } from '../../src';
 
 export interface TestDataSourceOptions {
     entities: EntityConstructor[];

@@ -494,6 +494,14 @@ console.log(user.getChanges());
 await user.save();
 console.log(user.isNew());     // false (now persisted)
 console.log(user.isChanged()); // false (changes saved)
+
+// Clean JSON serialization (excludes internal ORM properties)
+console.log(user.toJSON());
+// Output: { id: 1, name: 'Johnny', email: 'john@example.com', age: 25, createdAt: '...' }
+
+// Works seamlessly with JSON.stringify() for API responses
+const apiResponse = { user: user.toJSON(), timestamp: new Date() };
+console.log(JSON.stringify(apiResponse)); // Clean output without _isNew, _originalValues
 ```
 
 ## 🔧 Advanced Usage
