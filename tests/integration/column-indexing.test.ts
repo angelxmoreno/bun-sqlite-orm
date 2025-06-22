@@ -1,30 +1,28 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
-import { DataSource } from '../../src/data-source';
 import {
-    SimpleIndexEntity,
-    CustomIndexEntity,
-    UniqueIndexEntity,
     CompositeIndexEntity,
+    CustomIndexEntity,
+    SimpleIndexEntity,
+    UniqueIndexEntity,
 } from '../helpers/mock-entities';
+import { createTestDataSource, type TestDataSourceResult } from '../helpers/test-datasource';
 
 describe('Column Indexing Integration Tests', () => {
-    let dataSource: DataSource;
+    let testDS: TestDataSourceResult;
 
     beforeAll(async () => {
-        dataSource = new DataSource({
-            database: ':memory:',
+        testDS = await createTestDataSource({
             entities: [SimpleIndexEntity, CustomIndexEntity, UniqueIndexEntity, CompositeIndexEntity],
         });
-        await dataSource.initialize();
-        await dataSource.runMigrations(); // Creates tables and indexes
+        await testDS.dataSource.runMigrations(); // Creates tables and indexes
     });
 
     afterAll(async () => {
-        await dataSource.destroy();
+        await testDS.cleanup();
     });
 
     test('should create simple column indexes', async () => {
-        const db = dataSource.getDatabase();
+        const db = testDS.dataSource.getDatabase();
 
         // Check that indexes were created by querying SQLite system tables
         const indexes = db
@@ -50,7 +48,7 @@ describe('Column Indexing Integration Tests', () => {
     });
 
     test('should create composite indexes on class', async () => {
-        const db = dataSource.getDatabase();
+        const db = testDS.dataSource.getDatabase();
 
         const indexes = db
             .query(`
@@ -106,7 +104,7 @@ describe('Column Indexing Integration Tests', () => {
         expect(foundByEmail[0].name).toBe('User 50');
 
         // Test composite index queries
-        await dataSource.getDatabase().exec(`
+        await testDS.dataSource.getDatabase().exec(`
             INSERT INTO composite_index_entity (firstName, lastName, age, email, status)
             VALUES 
                 ('John', 'Doe', 30, 'john@example.com', 'active'),
@@ -114,7 +112,7 @@ describe('Column Indexing Integration Tests', () => {
                 ('John', 'Smith', 35, 'johnsmith@example.com', 'inactive')
         `);
 
-        const compositeResults = dataSource
+        const compositeResults = testDS.dataSource
             .getDatabase()
             .query(`
             SELECT * FROM composite_index_entity 
@@ -127,7 +125,7 @@ describe('Column Indexing Integration Tests', () => {
     });
 
     test('should handle unique index constraints', async () => {
-        const db = dataSource.getDatabase();
+        const db = testDS.dataSource.getDatabase();
 
         // First insert should work
         await db.exec(`
@@ -146,7 +144,7 @@ describe('Column Indexing Integration Tests', () => {
 
     test('should handle index creation edge cases', async () => {
         // Test that we can query the metadata container for index information
-        const metadataContainer = dataSource.getMetadataContainer();
+        const metadataContainer = testDS.dataSource.getMetadataContainer();
 
         const userIndexes = metadataContainer.getIndexes(SimpleIndexEntity);
         expect(userIndexes.length).toBeGreaterThan(0);
@@ -167,8 +165,8 @@ describe('Column Indexing Integration Tests', () => {
     });
 
     test('should generate correct SQL for indexes', async () => {
-        const sqlGenerator = dataSource.getSqlGenerator();
-        const metadataContainer = dataSource.getMetadataContainer();
+        const sqlGenerator = testDS.dataSource.getSqlGenerator();
+        const metadataContainer = testDS.dataSource.getMetadataContainer();
 
         const userMetadata = metadataContainer.getEntityMetadata(SimpleIndexEntity);
         const compositeMetadata = metadataContainer.getEntityMetadata(CompositeIndexEntity);

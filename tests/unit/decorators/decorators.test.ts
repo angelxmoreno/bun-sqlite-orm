@@ -5,11 +5,11 @@ import { BaseEntity } from '../../../src/entity';
 import type { MetadataContainer } from '../../../src/metadata';
 import type { EntityConstructor } from '../../../src/types';
 import {
+    AllColumnTypesEntity,
     IntPrimaryKeyEntity,
-    UuidPrimaryKeyEntity,
     StringPrimaryKeyEntity,
     UserRoleEntity,
-    AllColumnTypesEntity,
+    UuidPrimaryKeyEntity,
 } from '../../helpers/mock-entities';
 
 describe('Decorators', () => {
