@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { Column, Entity, PrimaryGeneratedColumn } from '../../../src/decorators';
 import { BaseEntity } from '../../../src/entity';
 import { clearTestData, createTestDataSource } from '../../helpers/test-datasource';
@@ -26,11 +26,14 @@ class JsonTestUser extends BaseEntity {
 describe('BaseEntity toJSON() Method', () => {
     let testDS: TestDataSourceResult;
 
-    beforeEach(async () => {
+    beforeAll(async () => {
         testDS = await createTestDataSource({
             entities: [JsonTestUser],
         });
         await testDS.dataSource.runMigrations();
+    });
+
+    beforeEach(async () => {
         await clearTestData([JsonTestUser]);
     });
 
@@ -239,9 +242,10 @@ describe('BaseEntity toJSON() Method', () => {
             });
         });
 
-        test('should be consistent across multiple calls', async () => {
-            const user = await JsonTestUser.create({
+        test('should be consistent across multiple calls', () => {
+            const user = JsonTestUser.build({
                 name: 'Consistency Test',
+                email: 'test@example.com',
                 age: 30,
             });
 
@@ -253,7 +257,7 @@ describe('BaseEntity toJSON() Method', () => {
         });
     });
 
-    afterEach(async () => {
+    afterAll(async () => {
         if (testDS?.cleanup) {
             await testDS.cleanup();
         }
