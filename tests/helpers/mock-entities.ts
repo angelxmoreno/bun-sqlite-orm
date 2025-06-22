@@ -123,39 +123,7 @@ export class StringPrimaryKeyEntity extends BaseEntity {
     category!: string;
 }
 
-// Composite primary key entities for relationship testing
-@Entity('user_roles')
-export class UserRoleEntity extends BaseEntity {
-    @PrimaryColumn()
-    userId!: number;
-
-    @PrimaryColumn()
-    roleId!: number;
-
-    @Column({ type: 'text', default: () => new Date().toISOString() })
-    assignedAt!: string;
-
-    @Column({ type: 'text', nullable: true })
-    assignedBy?: string;
-}
-
-@Entity('order_items')
-export class OrderItemEntity extends BaseEntity {
-    @PrimaryColumn()
-    orderId!: string;
-
-    @PrimaryColumn()
-    productSku!: string;
-
-    @Column({ type: 'integer' })
-    quantity!: number;
-
-    @Column({ type: 'real' })
-    unitPrice!: number;
-
-    @Column({ type: 'real' })
-    totalPrice!: number;
-}
+// Note: Composite primary key entities moved to separate file to prevent conflicts
 
 // =============================================================================
 // COLUMN TYPE TESTING

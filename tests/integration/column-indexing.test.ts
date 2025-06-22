@@ -5,7 +5,7 @@ import {
     SimpleIndexEntity,
     UniqueIndexEntity,
 } from '../helpers/mock-entities';
-import { createTestDataSource, type TestDataSourceResult } from '../helpers/test-datasource';
+import { type TestDataSourceResult, createTestDataSource } from '../helpers/test-datasource';
 
 describe('Column Indexing Integration Tests', () => {
     let testDS: TestDataSourceResult;
