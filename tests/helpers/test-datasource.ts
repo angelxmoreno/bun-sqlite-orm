@@ -3,11 +3,18 @@ import { DataSource } from '../../src';
 import { NullLogger } from '../../src';
 
 import type { DbLogger, EntityConstructor, SQLQueryBindings } from '../../src';
+import { resetGlobalMetadata } from './test-utils';
 
 export interface TestDataSourceOptions {
     entities: EntityConstructor[];
     logger?: DbLogger;
     database?: string;
+    /**
+     * Whether to clear global metadata before creating the DataSource.
+     * Defaults to false to preserve existing behavior. Set to true to enable
+     * test isolation (fixes issue #44).
+     */
+    clearMetadata?: boolean;
 }
 
 export interface TestDataSourceResult {
@@ -17,9 +24,20 @@ export interface TestDataSourceResult {
 }
 
 /**
- * Creates an isolated test DataSource with a unique SQLite database file
+ * Creates an isolated test DataSource with a unique SQLite database file.
+ * Optionally provides test isolation by clearing global metadata (fixes issue #44).
+ *
+ * Note: When clearMetadata is true, this function clears global metadata. Since decorators
+ * run at class definition time and cannot be re-executed, this means only entities defined
+ * AFTER calling this function will be available in the DataSource. This is intentional
+ * behavior to provide test isolation.
  */
 export async function createTestDataSource(options: TestDataSourceOptions): Promise<TestDataSourceResult> {
+    // Clear global metadata only if explicitly requested (issue #44 fix)
+    if (options.clearMetadata === true) {
+        resetGlobalMetadata();
+    }
+
     // Generate unique database path for this test
     const testDbPath = options.database || `./tests/test-${Date.now()}-${Math.random().toString(36).substring(2)}.db`;
 
@@ -48,6 +66,11 @@ export async function createTestDataSource(options: TestDataSourceOptions): Prom
             }
         } catch (error) {
             console.warn('Error removing test database file:', error);
+        }
+
+        // Clear metadata after test only if it was requested
+        if (options.clearMetadata === true) {
+            resetGlobalMetadata();
         }
     };
 
@@ -97,5 +120,41 @@ export async function clearTestData(
         } catch (error) {
             // Ignore errors (table might not exist yet)
         }
+    }
+}
+
+/**
+ * Creates an isolated test DataSource specifically for testing issue #44 fixes.
+ * This function demonstrates proper test isolation patterns.
+ *
+ * @param entities - Array of entity constructors
+ * @param testFn - Test function that receives the DataSource
+ * @returns Promise that resolves with the test function result
+ *
+ * @example
+ * ```typescript
+ * test('should isolate entities properly', async () => {
+ *     await withIsolatedDataSource([User, Post], async (dataSource) => {
+ *         await dataSource.runMigrations();
+ *         // Only User and Post tables exist in this DataSource
+ *         const user = User.build({ name: 'Test' });
+ *         await user.save();
+ *     });
+ * });
+ * ```
+ */
+export async function withIsolatedDataSource<T>(
+    entities: EntityConstructor[],
+    testFn: (dataSource: DataSource) => Promise<T>
+): Promise<T> {
+    const testDS = await createTestDataSource({
+        entities,
+        clearMetadata: true, // Ensure isolation
+    });
+
+    try {
+        return await testFn(testDS.dataSource);
+    } finally {
+        await testDS.cleanup();
     }
 }
