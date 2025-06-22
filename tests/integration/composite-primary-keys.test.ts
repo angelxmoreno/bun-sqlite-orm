@@ -2,56 +2,21 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:tes
 import { Column, Entity, PrimaryColumn } from '../../src/decorators';
 import { BaseEntity } from '../../src/entity';
 import { EntityNotFoundError } from '../../src/errors';
+import { OrderItemEntity, TestUserComposite, UserRoleEntity } from '../helpers/composite-entities';
 import { clearTestData, createTestDataSource } from '../helpers/test-datasource';
 import type { TestDataSourceResult } from '../helpers/test-datasource';
 
-// Test entities for composite primary key functionality
-@Entity('user_roles')
-class UserRole extends BaseEntity {
-    @PrimaryColumn()
-    userId!: number;
-
-    @PrimaryColumn()
-    roleId!: number;
-
-    @Column()
-    assignedBy!: string;
-
-    @Column()
-    assignedAt!: string;
-}
-
-@Entity('order_items')
-class OrderItem extends BaseEntity {
-    @PrimaryColumn()
-    orderId!: string;
-
-    @PrimaryColumn()
-    productSku!: string;
-
-    @Column()
-    quantity!: number;
-
-    @Column()
-    unitPrice!: number;
-}
-
-// Single primary key entity for comparison tests
-@Entity('users')
-class User extends BaseEntity {
-    @PrimaryColumn()
-    id!: number;
-
-    @Column()
-    name!: string;
-}
+// Use shared entities for better test organization
+const UserRole = UserRoleEntity;
+const OrderItem = OrderItemEntity;
+const User = TestUserComposite;
 
 describe('Composite Primary Keys Integration Tests', () => {
     let testDS: TestDataSourceResult;
 
     beforeAll(async () => {
         testDS = await createTestDataSource({
-            entities: [UserRole, OrderItem, User],
+            entities: [UserRoleEntity, OrderItemEntity, TestUserComposite],
         });
 
         // Run migrations to create tables
@@ -64,7 +29,7 @@ describe('Composite Primary Keys Integration Tests', () => {
 
     beforeEach(async () => {
         // Clear all test data between tests
-        await clearTestData([UserRole, OrderItem, User]);
+        await clearTestData([UserRoleEntity, OrderItemEntity, TestUserComposite]);
 
         // Insert fresh test data
         const db = testDS.dataSource.getDatabase();
@@ -139,19 +104,19 @@ describe('Composite Primary Keys Integration Tests', () => {
 
         test('should throw error when missing required composite key properties', async () => {
             await expect(UserRole.get({ userId: 1 } as unknown as { userId: number; roleId: number })).rejects.toThrow(
-                "Missing primary key property 'roleId' for entity UserRole"
+                "Missing primary key property 'roleId' for entity UserRoleEntity"
             );
         });
 
         test('should throw error when providing wrong property names', async () => {
             await expect(
                 UserRole.get({ wrongKey: 1, roleId: 1 } as unknown as { userId: number; roleId: number })
-            ).rejects.toThrow("Missing primary key property 'userId' for entity UserRole");
+            ).rejects.toThrow("Missing primary key property 'userId' for entity UserRoleEntity");
         });
 
         test('should throw error when providing primitive value for composite key entity', async () => {
             await expect(UserRole.get(123 as unknown as { userId: number; roleId: number })).rejects.toThrow(
-                'Entity UserRole has 2 primary keys. Expected object with keys: userId, roleId'
+                'Entity UserRoleEntity has 2 primary keys. Expected object with keys: userId, roleId'
             );
         });
     });
@@ -175,7 +140,7 @@ describe('Composite Primary Keys Integration Tests', () => {
 
         test('should throw error for invalid object notation on single key entity', async () => {
             await expect(User.get({ wrongKey: 1 } as unknown as number)).rejects.toThrow(
-                'Invalid composite key object for entity User. Expected property: id'
+                'Invalid composite key object for entity TestUserComposite. Expected property: id'
             );
         });
     });
@@ -315,7 +280,7 @@ describe('Composite Primary Keys Integration Tests', () => {
             (userRole as unknown as { userId: undefined }).userId = undefined;
 
             await expect(userRole.reload()).rejects.toThrow(
-                'Cannot reload entity UserRole: missing primary key values'
+                'Cannot reload entity UserRoleEntity: missing primary key values'
             );
         });
     });
