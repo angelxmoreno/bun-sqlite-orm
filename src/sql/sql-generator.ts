@@ -7,6 +7,12 @@ export class SqlGenerator {
         const columns: string[] = [];
         const primaryKeyColumns: string[] = [];
 
+        if (entity.columns.size === 0) {
+            throw new Error(
+                `Cannot create table for entity "${entity.tableName}": Entity has no columns defined. Add @Column, @PrimaryColumn, or @PrimaryGeneratedColumn decorators.`
+            );
+        }
+
         // Collect primary key columns
         for (const [, column] of entity.columns) {
             if (column.isPrimary) {

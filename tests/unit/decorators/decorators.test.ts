@@ -18,7 +18,10 @@ describe('Decorators', () => {
     describe('@Entity Decorator', () => {
         test('should register entity with custom table name', () => {
             @Entity('custom_table')
-            class TestEntity extends BaseEntity {}
+            class TestEntity extends BaseEntity {
+                @Column()
+                testColumn!: string;
+            }
 
             expect(metadataContainer.hasEntity(TestEntity as EntityConstructor)).toBe(true);
             const tableName = metadataContainer.getTableName(TestEntity as EntityConstructor);
@@ -27,7 +30,10 @@ describe('Decorators', () => {
 
         test('should register entity with inferred table name', () => {
             @Entity()
-            class InferredEntity extends BaseEntity {}
+            class InferredEntity extends BaseEntity {
+                @Column()
+                name!: string;
+            }
 
             expect(metadataContainer.hasEntity(InferredEntity as EntityConstructor)).toBe(true);
             const tableName = metadataContainer.getTableName(InferredEntity as EntityConstructor);

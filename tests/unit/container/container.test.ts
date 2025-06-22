@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 import { getGlobalMetadataContainer, typeBunContainer } from '../../../src/container';
+import { Column, Entity } from '../../../src/decorators';
 import { MetadataContainer } from '../../../src/metadata';
 import { SqlGenerator } from '../../../src/sql';
 
@@ -158,8 +159,11 @@ describe('Container', () => {
             expect(sqlGenerator).toBeInstanceOf(SqlGenerator);
 
             // Add some test data to MetadataContainer
-            class IntegrationTestEntity {}
-            metadataContainer.addEntity(IntegrationTestEntity, 'integration_test');
+            @Entity('integration_test')
+            class IntegrationTestEntity {
+                @Column()
+                testColumn!: string;
+            }
 
             // Verify data is accessible
             expect(metadataContainer.hasEntity(IntegrationTestEntity)).toBe(true);
