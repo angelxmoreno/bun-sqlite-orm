@@ -128,19 +128,26 @@ describe('Container', () => {
         test('should be functional and able to store entity metadata', () => {
             const metadataContainer = getGlobalMetadataContainer();
 
-            class TestEntity {}
-            metadataContainer.addEntity(TestEntity, 'test_entity');
+            @Entity('test_entity')
+            class TestEntity {
+                @Column()
+                name!: string;
+            }
 
             expect(metadataContainer.hasEntity(TestEntity)).toBe(true);
             expect(metadataContainer.getTableName(TestEntity)).toBe('test_entity');
         });
 
         test('should persist data across multiple calls', () => {
-            class PersistTestEntity {}
+            @Entity('persist_test')
+            class PersistTestEntity {
+                @Column()
+                data!: string;
+            }
 
-            // Add entity through first call
+            // Get container and verify entity is registered
             const container1 = getGlobalMetadataContainer();
-            container1.addEntity(PersistTestEntity, 'persist_test');
+            expect(container1.hasEntity(PersistTestEntity)).toBe(true);
 
             // Verify data persists through second call
             const container2 = getGlobalMetadataContainer();
