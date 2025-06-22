@@ -409,17 +409,23 @@ export abstract class BaseEntity {
 
             return result;
         } catch (error) {
-            // Fallback: if DataSource is not initialized, return all non-internal properties
-            // This ensures toJSON() works even before database initialization
-            const result: Record<string, unknown> = {};
-            for (const [key, value] of Object.entries(this as Record<string, unknown>)) {
-                // Exclude internal ORM properties
-                if (!key.startsWith('_') && value !== undefined) {
-                    result[key] = value;
+            // Only use fallback for specific initialization errors
+            if (error instanceof Error && error.message.includes('not initialized')) {
+                // Fallback: if DataSource is not initialized, return all non-internal properties
+                // This ensures toJSON() works even before database initialization
+                const result: Record<string, unknown> = {};
+                for (const [key, value] of Object.entries(this as Record<string, unknown>)) {
+                    // Exclude internal ORM properties
+                    if (!key.startsWith('_') && value !== undefined) {
+                        result[key] = value;
+                    }
                 }
+
+                return result;
             }
 
-            return result;
+            // Re-throw unexpected errors
+            throw error;
         }
     }
 
