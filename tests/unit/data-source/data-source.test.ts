@@ -1,7 +1,8 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
 import type { DataSourceOptions, EntityConstructor } from '../../../src';
 import { NullLogger } from '../../../src';
 import { DataSource } from '../../../src';
+import { resetAllMocks } from '../../helpers/mock-infrastructure';
 
 // Mock entities for testing
 class MockEntity {
@@ -35,12 +36,17 @@ describe('DataSource', () => {
         (global as Record<string, unknown>).Database = mock(() => mockDatabase);
 
         mockOptions = {
-            database: './tests/test.db',
+            database: ':memory:',
             entities: [MockEntity as EntityConstructor, AnotherMockEntity as EntityConstructor],
             logger: new NullLogger(),
         };
 
         dataSource = new DataSource(mockOptions);
+    });
+
+    afterEach(() => {
+        // Reset all mocks following prescribed unit test pattern
+        resetAllMocks();
     });
 
     describe('Constructor', () => {
@@ -86,7 +92,7 @@ describe('DataSource', () => {
     describe('Configuration Validation', () => {
         test('should accept valid configuration options', () => {
             const validOptions: DataSourceOptions = {
-                database: './tests/test.db',
+                database: ':memory:',
                 entities: [MockEntity as EntityConstructor],
                 logger: mockOptions.logger,
             };
@@ -96,7 +102,7 @@ describe('DataSource', () => {
 
         test('should handle options with migrations', () => {
             const optionsWithMigrations: DataSourceOptions = {
-                database: './tests/test.db',
+                database: ':memory:',
                 entities: [MockEntity as EntityConstructor],
                 migrations: ['./migrations/*.ts'],
                 logger: mockOptions.logger,
@@ -107,7 +113,7 @@ describe('DataSource', () => {
 
         test('should handle minimal options', () => {
             const minimalOptions: DataSourceOptions = {
-                database: './tests/test.db',
+                database: ':memory:',
                 entities: [],
             };
 

@@ -1,6 +1,7 @@
-import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { BaseEntity, Column, Entity, PrimaryGeneratedColumn } from '../../src';
-import { DataSource } from '../../src/data-source';
+import { clearTestData, createTestDataSource } from '../helpers/test-datasource';
+import type { TestDataSourceResult } from '../helpers/test-datasource';
 
 @Entity('sql_default_test')
 class SqlDefaultTestEntity extends BaseEntity {
@@ -28,19 +29,21 @@ class SqlDefaultTestEntity extends BaseEntity {
 }
 
 describe('SQL Defaults Integration Tests', () => {
-    let dataSource: DataSource;
+    let testDS: TestDataSourceResult;
 
     beforeAll(async () => {
-        dataSource = new DataSource({
-            database: ':memory:',
+        testDS = await createTestDataSource({
             entities: [SqlDefaultTestEntity],
         });
-        await dataSource.initialize();
-        await dataSource.runMigrations(); // Create tables
+        await testDS.dataSource.runMigrations();
     });
 
     afterAll(async () => {
-        await dataSource.destroy();
+        await testDS.cleanup();
+    });
+
+    beforeEach(async () => {
+        await clearTestData([SqlDefaultTestEntity]);
     });
 
     test('should apply SQL CURRENT_TIMESTAMP default correctly', async () => {

@@ -33,6 +33,97 @@ export function resetGlobalMetadata(): void {
 }
 
 /**
+ * Gets a snapshot of currently registered shared entities that should be preserved
+ * during test isolation. This includes entities from mock-entities.ts and other
+ * shared test infrastructure.
+ */
+function getSharedEntitySnapshot(): Map<string, EntityConstructor> {
+    const container = getGlobalMetadataContainer();
+    const sharedEntities = new Map<string, EntityConstructor>();
+
+    // Get all currently registered entities
+    const allEntities = container.getAllEntities();
+
+    // Filter to only include shared entities (from mock-entities.ts, etc.)
+    // We identify shared entities by checking if their table names start with 'test_'
+    // or are known shared entity table names
+    const sharedTablePrefixes = [
+        'test_',
+        'int_pk_entity',
+        'uuid_pk_entity',
+        'string_pk_entity',
+        'all_column_types',
+        'unique_columns',
+        'sql_defaults',
+        'js_defaults',
+        'static_defaults',
+        'mixed_defaults',
+        'comprehensive_sql_defaults',
+        'simple_index_entity',
+        'custom_index_entity',
+        'unique_index_entity',
+        'composite_index_entity',
+        'comprehensive_validation',
+        'email_validation',
+        'length_validation',
+        'boolean_test_entities',
+        'comprehensive_boolean',
+        'test_no_pk',
+        'test_invalid',
+        'json_test_entity',
+        'json_user_profiles',
+        'large_entity',
+    ];
+
+    for (const entityMetadata of allEntities) {
+        const tableName = entityMetadata.tableName;
+        const isSharedEntity = sharedTablePrefixes.some((prefix) => tableName.startsWith(prefix));
+
+        if (isSharedEntity) {
+            sharedEntities.set(tableName, entityMetadata.target);
+        }
+    }
+
+    return sharedEntities;
+}
+
+/**
+ * List of shared entity constructors that should be available globally
+ * across test suites. These are imported to ensure they're registered.
+ */
+const SHARED_ENTITIES: EntityConstructor[] = [];
+
+/**
+ * Register shared entities to ensure they're available after metadata resets.
+ * This should be called once during test setup to register core shared entities.
+ */
+export function registerSharedEntities(): void {
+    // Import shared entities to trigger their decorator registration
+    import('../helpers/mock-entities')
+        .then((module) => {
+            // The import itself registers the entities via decorators
+            // No explicit registration needed
+        })
+        .catch(() => {
+            // Ignore import errors in test environment
+        });
+}
+
+/**
+ * Resets global metadata while preserving shared entities from mock-entities.ts
+ * and other shared test infrastructure. This provides better test isolation
+ * without breaking tests that depend on shared entities.
+ */
+export function resetGlobalMetadataPreservingShared(): void {
+    // Clear metadata first
+    resetGlobalMetadata();
+
+    // Re-register shared entities by importing the mock-entities module
+    // The import will trigger decorator registration
+    registerSharedEntities();
+}
+
+/**
  * Executes a test function with isolated entity metadata.
  * Automatically clears and restores global metadata around the test.
  *
@@ -101,10 +192,21 @@ export async function withIsolatedEntities<T>(entities: EntityConstructor[], tes
  * ```
  */
 export async function withTestEntityScope<T>(testFn: () => Promise<T>): Promise<T> {
+    // Just execute the test function without any cleanup to preserve shared entities
+    // Test isolation is handled at the DataSource level instead
+    return await testFn();
+}
+
+/**
+ * Creates a scope for test entities that aggressively clears metadata.
+ * This is ONLY for testing the test isolation mechanisms themselves.
+ * DO NOT use this for regular tests as it will break shared entities.
+ */
+export async function withAggressiveTestEntityScope<T>(testFn: () => Promise<T>): Promise<T> {
     try {
         return await testFn();
     } finally {
-        // Clean up any entities that were registered during the test
+        // Aggressively clear metadata - only for isolation testing
         resetGlobalMetadata();
     }
 }

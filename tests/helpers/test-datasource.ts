@@ -38,8 +38,8 @@ export async function createTestDataSource(options: TestDataSourceOptions): Prom
         resetGlobalMetadata();
     }
 
-    // Generate unique database path for this test
-    const testDbPath = options.database || `./tests/test-${Date.now()}-${Math.random().toString(36).substring(2)}.db`;
+    // Use in-memory database for tests (much faster and no file cleanup needed)
+    const testDbPath = options.database || ':memory:';
 
     const dataSource = new DataSource({
         database: testDbPath,
@@ -50,22 +50,12 @@ export async function createTestDataSource(options: TestDataSourceOptions): Prom
     // Initialize the DataSource
     await dataSource.initialize();
 
-    // Cleanup function to destroy DataSource and remove test database
+    // Cleanup function to destroy DataSource (no file removal needed for in-memory DB)
     const cleanup = async () => {
         try {
             await dataSource.destroy();
         } catch (error) {
             console.warn('Error destroying DataSource:', error);
-        }
-
-        // Remove test database file
-        try {
-            const fs = await import('node:fs');
-            if (fs.existsSync(testDbPath)) {
-                fs.unlinkSync(testDbPath);
-            }
-        } catch (error) {
-            console.warn('Error removing test database file:', error);
         }
 
         // Clear metadata after test only if it was requested
@@ -85,7 +75,7 @@ export async function createTestDataSource(options: TestDataSourceOptions): Prom
  * Creates a raw SQLite database for low-level testing
  */
 export function createTestDatabase(dbPath?: string): { db: Database; cleanup: () => void } {
-    const testDbPath = dbPath || `./tests/test-raw-${Date.now()}-${Math.random().toString(36).substring(2)}.db`;
+    const testDbPath = dbPath || ':memory:';
     const db = new Database(testDbPath);
 
     const cleanup = () => {
@@ -94,15 +84,7 @@ export function createTestDatabase(dbPath?: string): { db: Database; cleanup: ()
         } catch (error) {
             console.warn('Error closing database:', error);
         }
-
-        try {
-            const fs = require('node:fs');
-            if (fs.existsSync(testDbPath)) {
-                fs.unlinkSync(testDbPath);
-            }
-        } catch (error) {
-            console.warn('Error removing database file:', error);
-        }
+        // No file removal needed for in-memory database
     };
 
     return { db, cleanup };

@@ -250,6 +250,31 @@ export class MixedDefaultsEntity extends BaseEntity {
     sqlVersion!: number;
 }
 
+@Entity('comprehensive_sql_defaults')
+export class ComprehensiveSqlDefaultsEntity extends BaseEntity {
+    @PrimaryGeneratedColumn('int')
+    id!: number;
+
+    @Column({ type: 'text' })
+    name!: string;
+
+    // SQL default - should use SQLite's CURRENT_TIMESTAMP
+    @Column({ sqlDefault: 'CURRENT_TIMESTAMP' })
+    createdAt!: Date;
+
+    // JS default - should use JavaScript function
+    @Column({ default: () => new Date('2024-01-01') })
+    jsDefaultDate!: Date;
+
+    // Static default value
+    @Column({ default: 'active' })
+    status!: string;
+
+    // Mixed: SQL default takes precedence over JS default
+    @Column({ sqlDefault: 'CURRENT_TIMESTAMP', default: () => 'should not be used' })
+    mixedDefault!: Date;
+}
+
 // =============================================================================
 // INDEX TESTING
 // =============================================================================
@@ -487,13 +512,16 @@ export class JsonTestEntity extends BaseEntity {
     @Column({ type: 'text' })
     name!: string;
 
-    @Column({ type: 'text' })
+    @Column({ type: 'text', unique: true })
     email!: string;
 
     @Column({ type: 'integer', nullable: true })
     age?: number;
 
-    @Column({ type: 'text', default: () => new Date().toISOString() })
+    @Column({ type: 'integer', sqlDefault: '1' })
+    isActive!: boolean;
+
+    @Column({ sqlDefault: 'CURRENT_TIMESTAMP' })
     createdAt!: string;
 
     @Column({ type: 'text', nullable: true })
@@ -503,6 +531,21 @@ export class JsonTestEntity extends BaseEntity {
     getDisplayName(): string {
         return `${this.name} <${this.email}>`;
     }
+}
+
+@Entity('json_user_profiles')
+export class JsonUserProfile extends BaseEntity {
+    @PrimaryColumn()
+    userId!: number;
+
+    @PrimaryColumn()
+    profileType!: string;
+
+    @Column({ type: 'text', nullable: true })
+    bio?: string;
+
+    @Column({ type: 'text', nullable: true })
+    avatar?: string;
 }
 
 // =============================================================================

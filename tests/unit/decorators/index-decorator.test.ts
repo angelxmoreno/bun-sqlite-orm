@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { getGlobalMetadataContainer } from '../../../src/container';
 import { Column } from '../../../src/decorators/column';
 import { Entity } from '../../../src/decorators/entity';
@@ -52,6 +52,12 @@ describe('Index Decorator Unit Tests', () => {
         metadataContainer = getGlobalMetadataContainer();
         // Note: We don't clear the container here because class decorators
         // run at definition time and would be lost
+    });
+
+    afterEach(() => {
+        // Note: We don't reset global metadata here because this is testing
+        // decorator infrastructure and inline entities are necessary for testing
+        // the actual decorator registration behavior.
     });
 
     test('should create simple property-level index with auto-generated name', () => {

@@ -1,8 +1,8 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
-import { Column, Entity, PrimaryGeneratedColumn } from '../../../src/decorators';
-import { BaseEntity } from '../../../src/entity';
-import { clearTestData, createTestDataSource } from '../../helpers/test-datasource';
-import type { TestDataSourceResult } from '../../helpers/test-datasource';
+import { Column, Entity, PrimaryGeneratedColumn } from '../../src/decorators';
+import { BaseEntity } from '../../src/entity';
+import { clearTestData, createTestDataSource } from '../helpers/test-datasource';
+import type { TestDataSourceResult } from '../helpers/test-datasource';
 
 // Test entity for JSON serialization
 @Entity('json_test_users')

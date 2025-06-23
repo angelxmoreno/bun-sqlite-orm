@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { getGlobalMetadataContainer } from '../../../src/container';
 import { Column, Entity, PrimaryColumn, PrimaryGeneratedColumn } from '../../../src/decorators';
 import { BaseEntity } from '../../../src/entity';
@@ -10,6 +10,7 @@ import {
     StringPrimaryKeyEntity,
     UuidPrimaryKeyEntity,
 } from '../../helpers/mock-entities';
+import { resetGlobalMetadata } from '../../helpers/test-utils';
 
 describe('Decorators', () => {
     let metadataContainer: MetadataContainer;
@@ -19,6 +20,14 @@ describe('Decorators', () => {
         metadataContainer = getGlobalMetadataContainer();
         // Note: We don't clear the container here because class decorators
         // run at definition time and would be lost
+    });
+
+    afterEach(() => {
+        // Note: We don't reset global metadata here because shared mock entities
+        // from mock-entities.ts should remain registered throughout the test suite.
+        // The 'Shared Mock Entities Integration' tests rely on these being available.
+        // Only inline test entities defined in individual tests need cleanup,
+        // which happens naturally when test scope ends.
     });
 
     describe('@Entity Decorator', () => {

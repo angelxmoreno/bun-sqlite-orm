@@ -3,6 +3,7 @@ import { Column, Entity, PrimaryColumn } from '../../src/decorators';
 import { BaseEntity } from '../../src/entity';
 import { EntityNotFoundError } from '../../src/errors';
 import { OrderItemEntity, TestUserComposite, UserRoleEntity } from '../helpers/composite-entities';
+import { NoPrimaryKeyEntity } from '../helpers/mock-entities';
 import { clearTestData, createTestDataSource } from '../helpers/test-datasource';
 import type { TestDataSourceResult } from '../helpers/test-datasource';
 
@@ -253,20 +254,14 @@ describe('Composite Primary Keys Integration Tests', () => {
 
     describe('Edge Cases', () => {
         test('should handle entities with no primary keys gracefully', async () => {
-            // This would be caught at the entity definition level, but test the runtime check
-            @Entity('no_pk_table')
-            class NoPrimaryKeyEntity extends BaseEntity {
-                @Column({ type: 'text' })
-                data!: string;
-            }
-
+            // Use shared NoPrimaryKeyEntity from mock-entities.ts for better compliance
             // Create a table without primary keys for this test
             const db = testDS.dataSource.getDatabase();
-            db.exec('CREATE TABLE IF NOT EXISTS "no_pk_table" ("data" TEXT)');
-            db.exec('INSERT INTO "no_pk_table" ("data") VALUES (\'test\')');
+            db.exec('CREATE TABLE IF NOT EXISTS "test_no_pk" ("name" TEXT)');
+            db.exec('INSERT INTO "test_no_pk" ("name") VALUES (\'test\')');
 
             const entity = new NoPrimaryKeyEntity();
-            entity.data = 'test';
+            entity.name = 'test';
             // Mark as not new to bypass the "unsaved entity" check
             (entity as unknown as { _isNew: boolean })._isNew = false;
 
