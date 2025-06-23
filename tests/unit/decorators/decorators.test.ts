@@ -1,9 +1,16 @@
-import { beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { getGlobalMetadataContainer } from '../../../src/container';
 import { Column, Entity, PrimaryColumn, PrimaryGeneratedColumn } from '../../../src/decorators';
 import { BaseEntity } from '../../../src/entity';
 import type { MetadataContainer } from '../../../src/metadata';
 import type { EntityConstructor } from '../../../src/types';
+import {
+    AllColumnTypesEntity,
+    IntPrimaryKeyEntity,
+    StringPrimaryKeyEntity,
+    UuidPrimaryKeyEntity,
+} from '../../helpers/mock-entities';
+import { resetGlobalMetadata } from '../../helpers/test-utils';
 
 describe('Decorators', () => {
     let metadataContainer: MetadataContainer;
@@ -13,6 +20,14 @@ describe('Decorators', () => {
         metadataContainer = getGlobalMetadataContainer();
         // Note: We don't clear the container here because class decorators
         // run at definition time and would be lost
+    });
+
+    afterEach(() => {
+        // Note: We don't reset global metadata here because shared mock entities
+        // from mock-entities.ts should remain registered throughout the test suite.
+        // The 'Shared Mock Entities Integration' tests rely on these being available.
+        // Only inline test entities defined in individual tests need cleanup,
+        // which happens naturally when test scope ends.
     });
 
     describe('@Entity Decorator', () => {
@@ -297,6 +312,8 @@ describe('Decorators', () => {
             expect(primaryKeys).toContain('key1');
             expect(primaryKeys).toContain('key2');
         });
+
+        // Note: Composite primary key test removed - entities moved to prevent conflicts
     });
 
     describe('Auto-registration', () => {
@@ -335,6 +352,63 @@ describe('Decorators', () => {
             }
 
             expect(metadataContainer.getTableName(ExplicitEntity as EntityConstructor)).toBe('explicit_table');
+        });
+    });
+
+    describe('Shared Mock Entities Integration', () => {
+        test('should validate IntPrimaryKeyEntity decorator setup', () => {
+            expect(metadataContainer.hasEntity(IntPrimaryKeyEntity as EntityConstructor)).toBe(true);
+            expect(metadataContainer.getTableName(IntPrimaryKeyEntity as EntityConstructor)).toBe('int_pk_entity');
+
+            const columns = metadataContainer.getColumns(IntPrimaryKeyEntity as EntityConstructor);
+            const primaryColumns = metadataContainer.getPrimaryColumns(IntPrimaryKeyEntity as EntityConstructor);
+
+            expect(primaryColumns).toHaveLength(1);
+            expect(primaryColumns[0].propertyName).toBe('id');
+            expect(primaryColumns[0].generationStrategy).toBe('increment');
+            expect(columns.get('id')?.type).toBe('integer');
+        });
+
+        test('should validate UuidPrimaryKeyEntity decorator setup', () => {
+            expect(metadataContainer.hasEntity(UuidPrimaryKeyEntity as EntityConstructor)).toBe(true);
+            expect(metadataContainer.getTableName(UuidPrimaryKeyEntity as EntityConstructor)).toBe('uuid_pk_entity');
+
+            const columns = metadataContainer.getColumns(UuidPrimaryKeyEntity as EntityConstructor);
+            const primaryColumns = metadataContainer.getPrimaryColumns(UuidPrimaryKeyEntity as EntityConstructor);
+
+            expect(primaryColumns).toHaveLength(1);
+            expect(primaryColumns[0].propertyName).toBe('id');
+            expect(primaryColumns[0].generationStrategy).toBe('uuid');
+            expect(columns.get('id')?.type).toBe('text');
+        });
+
+        test('should validate StringPrimaryKeyEntity decorator setup', () => {
+            expect(metadataContainer.hasEntity(StringPrimaryKeyEntity as EntityConstructor)).toBe(true);
+            expect(metadataContainer.getTableName(StringPrimaryKeyEntity as EntityConstructor)).toBe(
+                'string_pk_entity'
+            );
+
+            const columns = metadataContainer.getColumns(StringPrimaryKeyEntity as EntityConstructor);
+            const primaryColumns = metadataContainer.getPrimaryColumns(StringPrimaryKeyEntity as EntityConstructor);
+
+            expect(primaryColumns).toHaveLength(1);
+            expect(primaryColumns[0].propertyName).toBe('code');
+            expect(primaryColumns[0].isGenerated).toBe(false);
+            expect(columns.get('code')?.type).toBe('text');
+        });
+
+        test('should validate AllColumnTypesEntity column type inference', () => {
+            expect(metadataContainer.hasEntity(AllColumnTypesEntity as EntityConstructor)).toBe(true);
+
+            const columns = metadataContainer.getColumns(AllColumnTypesEntity as EntityConstructor);
+
+            // Verify all column types are properly registered
+            expect(columns.get('textColumn')?.type).toBe('text');
+            expect(columns.get('integerColumn')?.type).toBe('integer');
+            expect(columns.get('realColumn')?.type).toBe('real');
+            expect(columns.get('blobColumn')?.type).toBe('blob');
+            expect(columns.get('nullableText')?.nullable).toBe(true);
+            expect(columns.get('nullableInteger')?.nullable).toBe(true);
         });
     });
 });
