@@ -1,5 +1,27 @@
 
 
+# [1.3.0](https://github.com/angelxmoreno/bun-sqlite-orm/compare/v1.2.1...v1.3.0) (2025-06-25)
+
+
+### Bug Fixes
+
+* add columns to test entities to resolve GitHub Actions failures ([69c4e6f](https://github.com/angelxmoreno/bun-sqlite-orm/commit/69c4e6f51e379247857bf6efaffbb7ec317a312d)), closes [#43](https://github.com/angelxmoreno/bun-sqlite-orm/issues/43)
+* add columns to test entities to resolve GitHub Actions failures ([cc65c7c](https://github.com/angelxmoreno/bun-sqlite-orm/commit/cc65c7c2dbee2c3d9f5be59bbdd484db3de94bc6)), closes [#43](https://github.com/angelxmoreno/bun-sqlite-orm/issues/43)
+* add validation for entities with no columns in SQL generation ([4678398](https://github.com/angelxmoreno/bun-sqlite-orm/commit/467839886fc869bab7a55df452d968e44731a9e2)), closes [#43](https://github.com/angelxmoreno/bun-sqlite-orm/issues/43)
+* address TypeScript errors and update documentation ([8b04871](https://github.com/angelxmoreno/bun-sqlite-orm/commit/8b0487174efaddda5d55da408eb1ab4ed0d0ee91))
+* correct DataSource creation pattern and resolve entity duplication issues ([186763e](https://github.com/angelxmoreno/bun-sqlite-orm/commit/186763e4619106d5dcc6af9be04570f3f345aaba))
+* remove tests from pre-commit hook to resolve conflicts ([baaf299](https://github.com/angelxmoreno/bun-sqlite-orm/commit/baaf299ea1207d31ac12d4dd78525ddde1388eca))
+* resolve infinite loop in composite primary key tests ([b68e95a](https://github.com/angelxmoreno/bun-sqlite-orm/commit/b68e95a35b46c1e36fdd7c55228b669920303021))
+* resolve table name conflicts in integration tests ([74cd18c](https://github.com/angelxmoreno/bun-sqlite-orm/commit/74cd18c75e462f82345e37f167058a138b8fb237))
+
+
+### Features
+
+* complete entity JSON serialization with comprehensive tests ([ad535b2](https://github.com/angelxmoreno/bun-sqlite-orm/commit/ad535b2facee0a960ee315612f5613e0b186f621)), closes [#43](https://github.com/angelxmoreno/bun-sqlite-orm/issues/43) [#44](https://github.com/angelxmoreno/bun-sqlite-orm/issues/44) [#10](https://github.com/angelxmoreno/bun-sqlite-orm/issues/10) [#43](https://github.com/angelxmoreno/bun-sqlite-orm/issues/43) [#44](https://github.com/angelxmoreno/bun-sqlite-orm/issues/44)
+* implement complete composite primary key support ([8c6bd75](https://github.com/angelxmoreno/bun-sqlite-orm/commit/8c6bd75c784987061099884c998c88396842ec17)), closes [#22](https://github.com/angelxmoreno/bun-sqlite-orm/issues/22) [#22](https://github.com/angelxmoreno/bun-sqlite-orm/issues/22)
+* implement custom JSON serialization for entities ([204b834](https://github.com/angelxmoreno/bun-sqlite-orm/commit/204b83478833e441a14d265ea61cf02f8431dac1)), closes [#10](https://github.com/angelxmoreno/bun-sqlite-orm/issues/10)
+* implement prepared statement caching for 30-50% performance improvement ([7bea8b6](https://github.com/angelxmoreno/bun-sqlite-orm/commit/7bea8b6f081dd3a42df6dce0c58288c7e8fee2f9))
+
 ## [1.2.1](https://github.com/angelxmoreno/bun-sqlite-orm/compare/v1.2.0...v1.2.1) (2025-06-19)
 
 # [1.2.0](https://github.com/angelxmoreno/bun-sqlite-orm/compare/v1.1.0...v1.2.0) (2025-06-19)
