@@ -1,22 +1,5 @@
 
 
-# [1.3.1](https://github.com/angelxmoreno/bun-sqlite-orm/compare/v1.3.0...v1.3.1) (2025-06-25)
-
-
-### Features
-
-* enhance SQL expression detection for sqlDefault with case-insensitive support and additional SQLite functions
-
-### Improvements
-
-* **sqlDefault**: Enhanced regex pattern for SQL expression detection
-  - Case-insensitive matching for CURRENT_TIME, CURRENT_DATE, CURRENT_TIMESTAMP
-  - Support for SQLite functions: RANDOM(), ABS(), COALESCE(), DEFAULT
-  - Smart detection to avoid false positives with string literals
-  - Expanded type support: string | number | boolean | null
-* **Testing**: Added comprehensive tests for enhanced SQL expression detection
-* **Documentation**: Updated README and llm.txt with enhanced sqlDefault examples
-
 # [1.3.0](https://github.com/angelxmoreno/bun-sqlite-orm/compare/v1.2.1...v1.3.0) (2025-06-25)
 
 
@@ -27,8 +10,6 @@
 * add validation for entities with no columns in SQL generation ([4678398](https://github.com/angelxmoreno/bun-sqlite-orm/commit/467839886fc869bab7a55df452d968e44731a9e2)), closes [#43](https://github.com/angelxmoreno/bun-sqlite-orm/issues/43)
 * address TypeScript errors and update documentation ([8b04871](https://github.com/angelxmoreno/bun-sqlite-orm/commit/8b0487174efaddda5d55da408eb1ab4ed0d0ee91))
 * correct DataSource creation pattern and resolve entity duplication issues ([186763e](https://github.com/angelxmoreno/bun-sqlite-orm/commit/186763e4619106d5dcc6af9be04570f3f345aaba))
-* eliminate entity duplications in tests per testing guidelines ([83cddb9](https://github.com/angelxmoreno/bun-sqlite-orm/commit/83cddb9b4a8fde14ea53c0a5b61a44d34e9b2068))
-* expand sqlDefault type support from strings to string | number | boolean | null ([abc1234](https://github.com/angelxmoreno/bun-sqlite-orm/commit/abc1234))
 * remove tests from pre-commit hook to resolve conflicts ([baaf299](https://github.com/angelxmoreno/bun-sqlite-orm/commit/baaf299ea1207d31ac12d4dd78525ddde1388eca))
 * resolve infinite loop in composite primary key tests ([b68e95a](https://github.com/angelxmoreno/bun-sqlite-orm/commit/b68e95a35b46c1e36fdd7c55228b669920303021))
 * resolve table name conflicts in integration tests ([74cd18c](https://github.com/angelxmoreno/bun-sqlite-orm/commit/74cd18c75e462f82345e37f167058a138b8fb237))
