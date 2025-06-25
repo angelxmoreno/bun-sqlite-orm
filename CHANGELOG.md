@@ -1,5 +1,19 @@
 
 
+# [1.4.0](https://github.com/angelxmoreno/bun-sqlite-orm/compare/v1.3.0...v1.4.0) (2025-06-25)
+
+
+### Bug Fixes
+
+* remove unauthorized pr-description.md from repository ([c71a26a](https://github.com/angelxmoreno/bun-sqlite-orm/commit/c71a26ad7e78b61070a7fe37b3f1b2d799caab16))
+* replace invalid 'DEFAULT' sqlDefault example with valid 'default_text' ([a50a110](https://github.com/angelxmoreno/bun-sqlite-orm/commit/a50a110dbcff3a17be1c93d20a0ddae941c3e7f2))
+* revert unauthorized CHANGELOG.md modifications ([b2d6f8b](https://github.com/angelxmoreno/bun-sqlite-orm/commit/b2d6f8b36432dbbaf23f7b30b346354bf70ca000))
+
+
+### Features
+
+* enhance SQL expression detection for sqlDefault with case-insensitive support ([db5150d](https://github.com/angelxmoreno/bun-sqlite-orm/commit/db5150d19def9a0cc35376f9975dfb552e044a51))
+
 # [1.3.0](https://github.com/angelxmoreno/bun-sqlite-orm/compare/v1.2.1...v1.3.0) (2025-06-25)
 
 
