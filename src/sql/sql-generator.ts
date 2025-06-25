@@ -151,8 +151,16 @@ export class SqlGenerator {
     private formatSqlDefaultValue(value: string | number | boolean | null): string {
         // For SQL defaults, strings are usually SQL expressions or literals
         if (typeof value === 'string') {
-            // Check if it's a SQL function/expression (uppercase or contains parentheses)
-            if (/^[A-Z_]+$|\(\)|CURRENT_|DEFAULT/.test(value)) {
+            // Enhanced regex for SQLite-specific SQL expressions
+            // Matches:
+            // - CURRENT_TIME, CURRENT_DATE, CURRENT_TIMESTAMP (case insensitive)
+            // - DEFAULT keyword (case insensitive)
+            // - Simple functions with parentheses: RANDOM(), ABS(), etc.
+            // - All uppercase constants: NULL, TRUE, FALSE (only if truly all uppercase)
+            if (
+                /^(CURRENT_(TIME|DATE|TIMESTAMP)|DEFAULT|RANDOM\(\)|ABS\(.*\)|COALESCE\(.*\))$/i.test(value) ||
+                /^[A-Z_]+$/.test(value)
+            ) {
                 return value; // SQL expression, use as-is
             }
             // Otherwise treat as string literal

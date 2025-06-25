@@ -628,11 +628,24 @@ export class Post extends BaseEntity {
 
 #### Default Value Options
 
-**SQL Defaults** (`sqlDefault`): Handled by SQLite in the database
+**SQL Defaults** (`sqlDefault`): Handled by SQLite in the database with enhanced expression detection
 ```typescript
-// SQL expressions (no quotes needed)
+// SQL expressions (case-insensitive detection)
 @Column({ sqlDefault: 'CURRENT_TIMESTAMP' })
 createdAt!: Date;
+
+@Column({ sqlDefault: 'current_time' })    // lowercase works
+timeField!: string;
+
+@Column({ sqlDefault: 'Current_Date' })    // mixed case works  
+dateField!: string;
+
+// SQLite functions
+@Column({ sqlDefault: 'RANDOM()' })
+randomValue!: number;
+
+@Column({ sqlDefault: 'DEFAULT' })
+defaultValue!: string;
 
 // Numeric values (no quotes needed)
 @Column({ sqlDefault: 0 })
@@ -640,6 +653,9 @@ repos!: number;
 
 @Column({ sqlDefault: 3.14 })
 pi!: number;
+
+@Column({ sqlDefault: -1.5 })
+negativeValue!: number;
 
 // Boolean values (stored as 1/0 in SQLite)
 @Column({ sqlDefault: true })
@@ -655,7 +671,17 @@ optionalField?: string;
 // String literals (quotes added automatically)
 @Column({ sqlDefault: 'active' })
 status!: string;
+
+@Column({ sqlDefault: 'default_value' })
+name!: string;
 ```
+
+**Enhanced SQL Expression Detection**:
+- ✅ **Case-insensitive** SQL functions: `CURRENT_TIMESTAMP`, `current_time`, `Current_Date`  
+- ✅ **SQLite functions**: `RANDOM()`, `ABS()`, `COALESCE()`, `DEFAULT`
+- ✅ **Smart detection**: Distinguishes between SQL expressions and string literals
+- ✅ **Type support**: `string | number | boolean | null` for maximum flexibility
+- ✅ **Automatic quoting**: String literals are automatically quoted, SQL expressions are not
 
 **JavaScript Defaults** (`default`): Handled by the application
 ```typescript
