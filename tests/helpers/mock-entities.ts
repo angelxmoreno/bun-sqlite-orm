@@ -83,6 +83,85 @@ export class SimpleTestEntity extends BaseEntity {
     name!: string;
 }
 
+// Minimal entities for decorator testing
+@Entity('decorator_test_entity')
+export class DecoratorTestEntity extends BaseEntity {
+    @Column()
+    testColumn!: string;
+}
+
+@Entity('type_inference_entity')
+export class TypeInferenceEntity extends BaseEntity {
+    @Column()
+    stringProp!: string;
+
+    @Column()
+    numberProp!: number;
+
+    @Column()
+    dateProp!: Date;
+
+    @Column()
+    booleanProp!: boolean;
+}
+
+@Entity('custom_options_entity')
+export class CustomOptionsEntity extends BaseEntity {
+    @Column({
+        type: 'integer',
+        nullable: true,
+        unique: true,
+        default: 42,
+    })
+    count!: number;
+}
+
+// Entities for auto-registration testing
+export class AutoRegisteredEntity extends BaseEntity {
+    @Column()
+    name!: string;
+}
+
+export class AutoEntity1 extends BaseEntity {
+    @Column()
+    prop!: string;
+}
+
+export class AutoEntity2 extends BaseEntity {
+    @PrimaryColumn()
+    id!: string;
+}
+
+export class AutoEntity3 extends BaseEntity {
+    @PrimaryGeneratedColumn()
+    id!: number;
+}
+
+@Entity('explicit_table')
+export class ExplicitEntity extends BaseEntity {
+    @Column()
+    prop!: string;
+}
+
+// Complex entity for combined decorator testing
+@Entity('complex_entity')
+export class ComplexEntity extends BaseEntity {
+    @PrimaryGeneratedColumn('int')
+    id!: number;
+
+    @Column({ unique: true })
+    email!: string;
+
+    @Column({ nullable: true })
+    name?: string;
+
+    @Column({ type: 'real', default: 0.0 })
+    score!: number;
+
+    @Column({ type: 'integer', default: () => Date.now() })
+    timestamp!: number;
+}
+
 // =============================================================================
 // PRIMARY KEY VARIATIONS
 // =============================================================================

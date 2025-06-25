@@ -1,51 +1,14 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
-import { Column, Entity, PrimaryColumn, PrimaryGeneratedColumn } from '../../src/decorators';
-import { BaseEntity } from '../../src/entity';
+import { JsonTestEntity, JsonUserProfile } from '../helpers/mock-entities';
 import { clearTestData, createTestDataSource } from '../helpers/test-datasource';
 import type { TestDataSourceResult } from '../helpers/test-datasource';
-
-@Entity('json_users')
-class User extends BaseEntity {
-    @PrimaryGeneratedColumn('int')
-    id!: number;
-
-    @Column({ type: 'text' })
-    name!: string;
-
-    @Column({ type: 'text', unique: true })
-    email!: string;
-
-    @Column({ type: 'integer', nullable: true })
-    age?: number;
-
-    @Column({ type: 'integer', sqlDefault: '1' })
-    isActive!: boolean;
-
-    @Column({ sqlDefault: 'CURRENT_TIMESTAMP' })
-    createdAt!: string;
-}
-
-@Entity('json_user_profiles')
-class UserProfile extends BaseEntity {
-    @PrimaryColumn()
-    userId!: number;
-
-    @PrimaryColumn()
-    profileType!: string;
-
-    @Column({ type: 'text', nullable: true })
-    bio?: string;
-
-    @Column({ type: 'text', nullable: true })
-    avatar?: string;
-}
 
 describe('Entity JSON Serialization Integration Tests', () => {
     let testDS: TestDataSourceResult;
 
     beforeAll(async () => {
         testDS = await createTestDataSource({
-            entities: [User, UserProfile],
+            entities: [JsonTestEntity, JsonUserProfile],
         });
         await testDS.dataSource.runMigrations();
     });
@@ -55,12 +18,12 @@ describe('Entity JSON Serialization Integration Tests', () => {
     });
 
     beforeEach(async () => {
-        await clearTestData([User, UserProfile]);
+        await clearTestData([JsonTestEntity, JsonUserProfile]);
     });
 
     describe('Single Primary Key Entities', () => {
         test('should serialize complete user entity correctly', async () => {
-            const user = await User.create({
+            const user = await JsonTestEntity.create({
                 name: 'John Doe',
                 email: 'john@example.com',
                 age: 30,
@@ -85,18 +48,18 @@ describe('Entity JSON Serialization Integration Tests', () => {
 
         test('should work correctly with API-like scenarios', async () => {
             // Simulate typical API usage
-            const users = await User.find({});
+            const users = await JsonTestEntity.find({});
 
             // Add some test data first
-            await User.create({ name: 'Alice', email: 'alice@example.com', age: 25 });
-            await User.create({ name: 'Bob', email: 'bob@example.com', age: 35 });
+            await JsonTestEntity.create({ name: 'Alice', email: 'alice@example.com', age: 25 });
+            await JsonTestEntity.create({ name: 'Bob', email: 'bob@example.com', age: 35 });
 
-            const allUsers = await User.find({});
+            const allJsonTestEntitys = await JsonTestEntity.find({});
 
             // Simulate API response transformation
             const apiResponse = {
-                users: allUsers.map((user) => user.toJSON()),
-                total: allUsers.length,
+                users: allJsonTestEntitys.map((user) => user.toJSON()),
+                total: allJsonTestEntitys.length,
             };
 
             expect(apiResponse.users).toHaveLength(2);
@@ -110,7 +73,7 @@ describe('Entity JSON Serialization Integration Tests', () => {
         });
 
         test('should maintain consistency after entity modifications', async () => {
-            const user = await User.create({
+            const user = await JsonTestEntity.create({
                 name: 'Original Name',
                 email: 'original@example.com',
                 age: 25,
@@ -139,7 +102,7 @@ describe('Entity JSON Serialization Integration Tests', () => {
 
     describe('Composite Primary Key Entities', () => {
         test('should serialize composite key entity correctly', async () => {
-            const profile = UserProfile.build({
+            const profile = JsonUserProfile.build({
                 userId: 1,
                 profileType: 'public',
                 bio: 'Software developer',
@@ -163,7 +126,7 @@ describe('Entity JSON Serialization Integration Tests', () => {
         });
 
         test('should handle composite entities with partial data', async () => {
-            const profile = await UserProfile.create({
+            const profile = await JsonUserProfile.create({
                 userId: 2,
                 profileType: 'private',
                 // bio and avatar are undefined
@@ -184,7 +147,7 @@ describe('Entity JSON Serialization Integration Tests', () => {
 
     describe('Logging and Debugging Scenarios', () => {
         test('should produce clean output in console.log scenarios', async () => {
-            const user = await User.create({
+            const user = await JsonTestEntity.create({
                 name: 'Console Test',
                 email: 'console@test.com',
                 age: 30,
@@ -201,8 +164,8 @@ describe('Entity JSON Serialization Integration Tests', () => {
 
         test('should work with debugging tools that use JSON.stringify', async () => {
             const users = await Promise.all([
-                User.create({ name: 'Debug User 1', email: 'debug1@test.com' }),
-                User.create({ name: 'Debug User 2', email: 'debug2@test.com' }),
+                JsonTestEntity.create({ name: 'Debug JsonTestEntity 1', email: 'debug1@test.com' }),
+                JsonTestEntity.create({ name: 'Debug JsonTestEntity 2', email: 'debug2@test.com' }),
             ]);
 
             // Simulate debugging scenario
@@ -210,14 +173,14 @@ describe('Entity JSON Serialization Integration Tests', () => {
 
             expect(debugOutput).not.toContain('_isNew');
             expect(debugOutput).not.toContain('_originalValues');
-            expect(debugOutput).toContain('Debug User 1');
-            expect(debugOutput).toContain('Debug User 2');
+            expect(debugOutput).toContain('Debug JsonTestEntity 1');
+            expect(debugOutput).toContain('Debug JsonTestEntity 2');
         });
     });
 
     describe('Performance and Memory Considerations', () => {
         test('should not leak internal state in serialized form', async () => {
-            const user = await User.create({
+            const user = await JsonTestEntity.create({
                 name: 'Memory Test',
                 email: 'memory@test.com',
             });
@@ -238,8 +201,8 @@ describe('Entity JSON Serialization Integration Tests', () => {
         test('should handle large datasets efficiently', async () => {
             // Create multiple entities
             const userPromises = Array.from({ length: 50 }, (_, i) =>
-                User.create({
-                    name: `User ${i}`,
+                JsonTestEntity.create({
+                    name: `JsonTestEntity ${i}`,
                     email: `user${i}@example.com`,
                     age: 20 + (i % 50),
                 })
@@ -249,14 +212,14 @@ describe('Entity JSON Serialization Integration Tests', () => {
 
             // Serialize all entities
             const start = performance.now();
-            const serializedUsers = users.map((user) => user.toJSON());
+            const serializedJsonTestEntitys = users.map((user) => user.toJSON());
             const end = performance.now();
 
-            expect(serializedUsers).toHaveLength(50);
+            expect(serializedJsonTestEntitys).toHaveLength(50);
             expect(end - start).toBeLessThan(100); // Should be fast
 
             // Verify all are clean
-            for (const userJson of serializedUsers) {
+            for (const userJson of serializedJsonTestEntitys) {
                 expect(userJson).not.toHaveProperty('_isNew');
                 expect(userJson).not.toHaveProperty('_originalValues');
                 expect(userJson).toHaveProperty('name');
