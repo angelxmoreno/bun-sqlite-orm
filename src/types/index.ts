@@ -17,7 +17,7 @@ export interface ColumnOptions {
     nullable?: boolean;
     unique?: boolean;
     default?: unknown;
-    sqlDefault?: string;
+    sqlDefault?: string | number | boolean | null;
     /**
      * Index configuration for the column:
      * - `true` → auto-named, non-unique index
@@ -51,7 +51,7 @@ export interface ColumnMetadata {
     nullable: boolean;
     unique: boolean;
     default?: unknown;
-    sqlDefault?: string;
+    sqlDefault?: string | number | boolean | null;
     isPrimary: boolean;
     isGenerated: boolean;
     generationStrategy?: 'increment' | 'uuid';

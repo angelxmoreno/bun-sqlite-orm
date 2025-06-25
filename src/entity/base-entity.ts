@@ -585,20 +585,29 @@ export abstract class BaseEntity {
         for (const [propertyName, metadata] of columns) {
             const value = row[propertyName];
 
-            if (value !== undefined && value !== null) {
-                const tsType = Reflect.getMetadata('design:type', this, propertyName);
+            if (value !== undefined) {
+                if (value === null) {
+                    // Only explicitly set null values for fields that have sqlDefault: null
+                    // This preserves the distinction between explicit null and missing optional fields
+                    if (metadata.sqlDefault === null) {
+                        (this as Record<string, unknown>)[propertyName] = null;
+                    }
+                    // For other nullable fields, leave them as undefined if they weren't set
+                } else {
+                    const tsType = Reflect.getMetadata('design:type', this, propertyName);
 
-                // Convert INTEGER (1/0) back to boolean for boolean properties
-                if (metadata.type === 'integer' && tsType === Boolean) {
-                    (this as Record<string, unknown>)[propertyName] = value === 1;
-                }
-                // Convert stored date values back to Date objects using DateUtils
-                else if (tsType === Date && (typeof value === 'string' || typeof value === 'number')) {
-                    (this as Record<string, unknown>)[propertyName] = storageToDate(value);
-                }
-                // Default: use value as-is
-                else {
-                    (this as Record<string, unknown>)[propertyName] = value;
+                    // Convert INTEGER (1/0) back to boolean for boolean properties
+                    if (metadata.type === 'integer' && tsType === Boolean) {
+                        (this as Record<string, unknown>)[propertyName] = value === 1;
+                    }
+                    // Convert stored date values back to Date objects using DateUtils
+                    else if (tsType === Date && (typeof value === 'string' || typeof value === 'number')) {
+                        (this as Record<string, unknown>)[propertyName] = storageToDate(value);
+                    }
+                    // Default: use value as-is
+                    else {
+                        (this as Record<string, unknown>)[propertyName] = value;
+                    }
                 }
             }
         }

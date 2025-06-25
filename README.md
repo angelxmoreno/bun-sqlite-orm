@@ -169,7 +169,7 @@ await User.deleteAll({ status: 'inactive' });
     nullable?: boolean,        // Allow NULL values (default: false)
     unique?: boolean,          // Add unique constraint (default: false)
     default?: any | (() => any), // JavaScript default value or function
-    sqlDefault?: string,       // SQL default expression (e.g., 'CURRENT_TIMESTAMP')
+    sqlDefault?: string | number | boolean | null, // SQL default value or expression
     index?: boolean | string   // Create index: true for auto-named, string for custom name
 })
 ```
@@ -630,13 +630,30 @@ export class Post extends BaseEntity {
 
 **SQL Defaults** (`sqlDefault`): Handled by SQLite in the database
 ```typescript
+// SQL expressions (no quotes needed)
 @Column({ sqlDefault: 'CURRENT_TIMESTAMP' })
 createdAt!: Date;
 
-@Column({ sqlDefault: '0' })
-score!: number;
+// Numeric values (no quotes needed)
+@Column({ sqlDefault: 0 })
+repos!: number;
 
-@Column({ sqlDefault: "'active'" }) // Note the quotes for string literals
+@Column({ sqlDefault: 3.14 })
+pi!: number;
+
+// Boolean values (stored as 1/0 in SQLite)
+@Column({ sqlDefault: true })
+isActive!: boolean;
+
+@Column({ sqlDefault: false })
+isDeleted!: boolean;
+
+// Null values
+@Column({ nullable: true, sqlDefault: null })
+optionalField?: string;
+
+// String literals (quotes added automatically)
+@Column({ sqlDefault: 'active' })
 status!: string;
 ```
 

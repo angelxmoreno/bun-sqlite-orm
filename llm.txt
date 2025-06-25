@@ -494,7 +494,7 @@ const dataSource = new DataSource({
   nullable: false,        // Allow NULL values
   unique: true,          // Unique constraint
   index: true,           // Create index
-  sqlDefault: 'CURRENT_TIMESTAMP', // SQL default value
+  sqlDefault: 'CURRENT_TIMESTAMP', // SQL default value (string | number | boolean | null)
   default: 'active'      // JavaScript default value
 })
 ```
