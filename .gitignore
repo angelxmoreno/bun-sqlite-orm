@@ -177,3 +177,4 @@ test.db
 
 # SonarCloud local checks
 .scannerwork
+pr-description.md
