@@ -4,6 +4,7 @@ import { getGlobalMetadataContainer, typeBunContainer } from './container';
 import { NullLogger } from './logger';
 import { MetadataContainer } from './metadata';
 import { QueryBuilder, SqlGenerator } from './sql';
+import { StatementCache } from './statement-cache';
 import type { DataSourceOptions, DbLogger } from './types';
 
 export class DataSource {
@@ -72,6 +73,12 @@ export class DataSource {
 
         const logger = this.typeBunContainer.resolve<DbLogger>('DbLogger');
         logger.info('Destroying TypeBunOrm DataSource');
+
+        // Log statement cache statistics before cleanup
+        StatementCache.logStats(logger);
+
+        // Clean up all cached prepared statements before closing database
+        StatementCache.cleanup();
 
         this.database.close();
         this.isInitialized = false;

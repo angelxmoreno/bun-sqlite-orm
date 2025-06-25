@@ -1,6 +1,6 @@
 import type { Database } from 'bun:sqlite';
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
-import { BaseEntity } from '../../../src';
+import { BaseEntity, StatementCache } from '../../../src';
 import { DatabaseError, EntityNotFoundError } from '../../../src';
 import type { DbLogger } from '../../../src';
 import { typeBunContainer } from '../../../src/container';
@@ -50,6 +50,9 @@ describe('BaseEntity', () => {
     let originalResolve: typeof typeBunContainer.resolve;
 
     beforeEach(() => {
+        // Enable test mode for StatementCache to support mocks
+        StatementCache.setTestMode(true);
+
         // Store original resolve method
         originalResolve = typeBunContainer.resolve;
         // Mock Database
@@ -172,6 +175,9 @@ describe('BaseEntity', () => {
     });
 
     afterEach(() => {
+        // Disable test mode and restore normal caching
+        StatementCache.setTestMode(false);
+
         // Restore original resolve method
         typeBunContainer.resolve = originalResolve;
     });
