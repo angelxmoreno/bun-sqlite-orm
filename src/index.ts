@@ -4,4 +4,5 @@ export * from './entity';
 export * from './decorators';
 export * from './logger';
 export * from './errors';
+export * from './statement-cache';
 export * from './types';
