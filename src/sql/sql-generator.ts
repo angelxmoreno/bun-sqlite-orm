@@ -48,7 +48,7 @@ export class SqlGenerator {
 
             // Handle SQL defaults first (takes precedence)
             if (column.sqlDefault !== undefined) {
-                columnDef += ` DEFAULT ${column.sqlDefault}`;
+                columnDef += ` DEFAULT ${this.formatSqlDefaultValue(column.sqlDefault)}`;
             } else if (column.default !== undefined && typeof column.default !== 'function') {
                 columnDef += ` DEFAULT ${this.formatDefaultValue(column.default)}`;
             }
@@ -146,6 +146,36 @@ export class SqlGenerator {
         }
 
         return { sql, values };
+    }
+
+    private formatSqlDefaultValue(value: string | number | boolean | null): string {
+        // For SQL defaults, strings are usually SQL expressions or literals
+        if (typeof value === 'string') {
+            // Enhanced regex for SQLite-specific SQL expressions
+            // Matches:
+            // - CURRENT_TIME, CURRENT_DATE, CURRENT_TIMESTAMP (case insensitive)
+            // - DEFAULT keyword (case insensitive)
+            // - Simple functions with parentheses: RANDOM(), ABS(), etc.
+            // - All uppercase constants: NULL, TRUE, FALSE (only if truly all uppercase)
+            if (
+                /^(CURRENT_(TIME|DATE|TIMESTAMP)|DEFAULT|RANDOM\(\)|ABS\(.*\)|COALESCE\(.*\))$/i.test(value) ||
+                /^[A-Z_]+$/.test(value)
+            ) {
+                return value; // SQL expression, use as-is
+            }
+            // Otherwise treat as string literal
+            return `'${value.replace(/'/g, "''")}'`; // Escape single quotes
+        }
+        if (typeof value === 'number') {
+            return String(value); // Numbers don't need quotes
+        }
+        if (typeof value === 'boolean') {
+            return value ? '1' : '0'; // SQLite stores booleans as integers
+        }
+        if (value === null) {
+            return 'NULL';
+        }
+        return String(value);
     }
 
     private formatDefaultValue(value: unknown): string {

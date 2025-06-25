@@ -169,7 +169,7 @@ await User.deleteAll({ status: 'inactive' });
     nullable?: boolean,        // Allow NULL values (default: false)
     unique?: boolean,          // Add unique constraint (default: false)
     default?: any | (() => any), // JavaScript default value or function
-    sqlDefault?: string,       // SQL default expression (e.g., 'CURRENT_TIMESTAMP')
+    sqlDefault?: string | number | boolean | null, // SQL default value or expression
     index?: boolean | string   // Create index: true for auto-named, string for custom name
 })
 ```
@@ -628,17 +628,60 @@ export class Post extends BaseEntity {
 
 #### Default Value Options
 
-**SQL Defaults** (`sqlDefault`): Handled by SQLite in the database
+**SQL Defaults** (`sqlDefault`): Handled by SQLite in the database with enhanced expression detection
 ```typescript
+// SQL expressions (case-insensitive detection)
 @Column({ sqlDefault: 'CURRENT_TIMESTAMP' })
 createdAt!: Date;
 
-@Column({ sqlDefault: '0' })
-score!: number;
+@Column({ sqlDefault: 'current_time' })    // lowercase works
+timeField!: string;
 
-@Column({ sqlDefault: "'active'" }) // Note the quotes for string literals
+@Column({ sqlDefault: 'Current_Date' })    // mixed case works  
+dateField!: string;
+
+// SQLite functions
+@Column({ sqlDefault: 'RANDOM()' })
+randomValue!: number;
+
+@Column({ sqlDefault: 'DEFAULT' })
+defaultValue!: string;
+
+// Numeric values (no quotes needed)
+@Column({ sqlDefault: 0 })
+repos!: number;
+
+@Column({ sqlDefault: 3.14 })
+pi!: number;
+
+@Column({ sqlDefault: -1.5 })
+negativeValue!: number;
+
+// Boolean values (stored as 1/0 in SQLite)
+@Column({ sqlDefault: true })
+isActive!: boolean;
+
+@Column({ sqlDefault: false })
+isDeleted!: boolean;
+
+// Null values
+@Column({ nullable: true, sqlDefault: null })
+optionalField?: string;
+
+// String literals (quotes added automatically)
+@Column({ sqlDefault: 'active' })
 status!: string;
+
+@Column({ sqlDefault: 'default_value' })
+name!: string;
 ```
+
+**Enhanced SQL Expression Detection**:
+- ✅ **Case-insensitive** SQL functions: `CURRENT_TIMESTAMP`, `current_time`, `Current_Date`  
+- ✅ **SQLite functions**: `RANDOM()`, `ABS()`, `COALESCE()`, `DEFAULT`
+- ✅ **Smart detection**: Distinguishes between SQL expressions and string literals
+- ✅ **Type support**: `string | number | boolean | null` for maximum flexibility
+- ✅ **Automatic quoting**: String literals are automatically quoted, SQL expressions are not
 
 **JavaScript Defaults** (`default`): Handled by the application
 ```typescript

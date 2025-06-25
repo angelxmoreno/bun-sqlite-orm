@@ -83,6 +83,85 @@ export class SimpleTestEntity extends BaseEntity {
     name!: string;
 }
 
+// Minimal entities for decorator testing
+@Entity('decorator_test_entity')
+export class DecoratorTestEntity extends BaseEntity {
+    @Column()
+    testColumn!: string;
+}
+
+@Entity('type_inference_entity')
+export class TypeInferenceEntity extends BaseEntity {
+    @Column()
+    stringProp!: string;
+
+    @Column()
+    numberProp!: number;
+
+    @Column()
+    dateProp!: Date;
+
+    @Column()
+    booleanProp!: boolean;
+}
+
+@Entity('custom_options_entity')
+export class CustomOptionsEntity extends BaseEntity {
+    @Column({
+        type: 'integer',
+        nullable: true,
+        unique: true,
+        default: 42,
+    })
+    count!: number;
+}
+
+// Entities for auto-registration testing
+export class AutoRegisteredEntity extends BaseEntity {
+    @Column()
+    name!: string;
+}
+
+export class AutoEntity1 extends BaseEntity {
+    @Column()
+    prop!: string;
+}
+
+export class AutoEntity2 extends BaseEntity {
+    @PrimaryColumn()
+    id!: string;
+}
+
+export class AutoEntity3 extends BaseEntity {
+    @PrimaryGeneratedColumn()
+    id!: number;
+}
+
+@Entity('explicit_table')
+export class ExplicitEntity extends BaseEntity {
+    @Column()
+    prop!: string;
+}
+
+// Complex entity for combined decorator testing
+@Entity('complex_entity')
+export class ComplexEntity extends BaseEntity {
+    @PrimaryGeneratedColumn('int')
+    id!: number;
+
+    @Column({ unique: true })
+    email!: string;
+
+    @Column({ nullable: true })
+    name?: string;
+
+    @Column({ type: 'real', default: 0.0 })
+    score!: number;
+
+    @Column({ type: 'integer', default: () => Date.now() })
+    timestamp!: number;
+}
+
 // =============================================================================
 // PRIMARY KEY VARIATIONS
 // =============================================================================
@@ -186,11 +265,33 @@ export class SqlDefaultsEntity extends BaseEntity {
     @Column({ type: 'text', sqlDefault: 'CURRENT_TIMESTAMP' })
     updatedAt!: string;
 
-    @Column({ type: 'text', sqlDefault: "'active'" })
+    @Column({ type: 'text', sqlDefault: 'active' })
     status!: string;
 
-    @Column({ type: 'integer', sqlDefault: '0' })
+    @Column({ type: 'integer', sqlDefault: 0 })
     priority!: number;
+
+    // New fields to test expanded sqlDefault types
+    @Column({ type: 'integer', sqlDefault: 42 })
+    luckyNumber!: number;
+
+    @Column({ type: 'real', sqlDefault: 3.14 })
+    pi!: number;
+
+    @Column({ type: 'real', sqlDefault: -1.5 })
+    negativeValue!: number;
+
+    @Column({ type: 'integer', sqlDefault: true })
+    isActive!: boolean;
+
+    @Column({ type: 'integer', sqlDefault: false })
+    isDeleted!: boolean;
+
+    @Column({ type: 'text', nullable: true, sqlDefault: null })
+    optionalField?: string;
+
+    @Column({ type: 'text', sqlDefault: 'default_value' })
+    defaultString!: string;
 }
 
 @Entity('js_defaults')

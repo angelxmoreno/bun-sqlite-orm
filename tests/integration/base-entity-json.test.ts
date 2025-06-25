@@ -1,45 +1,25 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
-import { Column, Entity, PrimaryGeneratedColumn } from '../../src/decorators';
-import { BaseEntity } from '../../src/entity';
+import { JsonTestEntity } from '../helpers/mock-entities';
 import { clearTestData, createTestDataSource } from '../helpers/test-datasource';
 import type { TestDataSourceResult } from '../helpers/test-datasource';
-
-// Test entity for JSON serialization
-@Entity('json_test_users')
-class JsonTestUser extends BaseEntity {
-    @PrimaryGeneratedColumn('int')
-    id!: number;
-
-    @Column({ type: 'text' })
-    name!: string;
-
-    @Column({ type: 'text', nullable: true })
-    email?: string;
-
-    @Column({ type: 'integer', sqlDefault: '0' })
-    age!: number;
-
-    @Column({ type: 'integer', sqlDefault: '1' })
-    isActive!: boolean;
-}
 
 describe('BaseEntity toJSON() Method', () => {
     let testDS: TestDataSourceResult;
 
     beforeAll(async () => {
         testDS = await createTestDataSource({
-            entities: [JsonTestUser],
+            entities: [JsonTestEntity],
         });
         await testDS.dataSource.runMigrations();
     });
 
     beforeEach(async () => {
-        await clearTestData([JsonTestUser]);
+        await clearTestData([JsonTestEntity]);
     });
 
     describe('With Database Initialized', () => {
         test('should serialize entity with only column properties', async () => {
-            const user = JsonTestUser.build({
+            const user = JsonTestEntity.build({
                 name: 'John Doe',
                 email: 'john@example.com',
                 age: 30,
@@ -61,7 +41,7 @@ describe('BaseEntity toJSON() Method', () => {
         });
 
         test('should exclude undefined values from JSON output', () => {
-            const user = JsonTestUser.build({
+            const user = JsonTestEntity.build({
                 name: 'Jane Doe',
                 age: 25,
                 // email is undefined
@@ -79,7 +59,7 @@ describe('BaseEntity toJSON() Method', () => {
         });
 
         test('should serialize saved entity correctly', async () => {
-            const user = await JsonTestUser.create({
+            const user = await JsonTestEntity.create({
                 name: 'Alice Smith',
                 email: 'alice@example.com',
                 age: 28,
@@ -93,6 +73,7 @@ describe('BaseEntity toJSON() Method', () => {
                 email: 'alice@example.com',
                 age: 28,
                 isActive: true, // SQL default applied
+                createdAt: expect.any(String), // CURRENT_TIMESTAMP default
             });
 
             // Verify internal state is not included
@@ -101,8 +82,9 @@ describe('BaseEntity toJSON() Method', () => {
         });
 
         test('should work with modified entities', async () => {
-            const user = await JsonTestUser.create({
+            const user = await JsonTestEntity.create({
                 name: 'Bob Wilson',
+                email: 'bob@example.com',
                 age: 35,
             });
 
@@ -115,8 +97,10 @@ describe('BaseEntity toJSON() Method', () => {
             expect(json).toEqual({
                 id: expect.any(Number),
                 name: 'Robert Wilson', // Modified value
+                email: 'bob@example.com', // Email unchanged
                 age: 36, // Modified value
                 isActive: true,
+                createdAt: expect.any(String),
             });
 
             // Still no internal properties
@@ -125,8 +109,9 @@ describe('BaseEntity toJSON() Method', () => {
         });
 
         test('should handle boolean type conversion correctly', async () => {
-            const user = await JsonTestUser.create({
+            const user = await JsonTestEntity.create({
                 name: 'Test User',
+                email: 'test@example.com',
                 age: 25,
                 isActive: false,
             });
@@ -138,7 +123,7 @@ describe('BaseEntity toJSON() Method', () => {
         });
 
         test('should work with JSON.stringify()', async () => {
-            const user = await JsonTestUser.create({
+            const user = await JsonTestEntity.create({
                 name: 'JSON Test',
                 email: 'json@test.com',
                 age: 30,
@@ -153,6 +138,7 @@ describe('BaseEntity toJSON() Method', () => {
                 email: 'json@test.com',
                 age: 30,
                 isActive: true,
+                createdAt: expect.any(String),
             });
 
             // Verify no internal properties in stringified JSON
@@ -166,10 +152,11 @@ describe('BaseEntity toJSON() Method', () => {
             // Destroy the data source to simulate uninitialized state
             testDS.cleanup();
 
-            const user = new JsonTestUser();
-            user.name = 'Fallback User';
-            user.email = 'fallback@example.com';
-            user.age = 25;
+            const user = JsonTestEntity.build({
+                name: 'Fallback User',
+                email: 'fallback@example.com',
+                age: 25,
+            });
 
             const json = user.toJSON();
 
@@ -188,8 +175,10 @@ describe('BaseEntity toJSON() Method', () => {
             // Destroy the data source to simulate uninitialized state
             testDS.cleanup();
 
-            const user = new JsonTestUser();
-            user.name = 'Test User';
+            const user = JsonTestEntity.build({
+                name: 'Test User',
+                email: 'test@example.com',
+            });
             // Simulate some internal properties that might exist
             (user as unknown as Record<string, unknown>)._someInternalProp = 'should not appear';
             (user as unknown as Record<string, unknown>).__proto_prop = 'should not appear';
@@ -198,6 +187,7 @@ describe('BaseEntity toJSON() Method', () => {
 
             expect(json).toEqual({
                 name: 'Test User',
+                email: 'test@example.com',
             });
 
             expect(json).not.toHaveProperty('_someInternalProp');
@@ -208,7 +198,7 @@ describe('BaseEntity toJSON() Method', () => {
 
     describe('Edge Cases', () => {
         test('should handle empty entity correctly', () => {
-            const user = JsonTestUser.build({});
+            const user = JsonTestEntity.build({});
             const json = user.toJSON();
 
             expect(json).toEqual({});
@@ -216,7 +206,7 @@ describe('BaseEntity toJSON() Method', () => {
         });
 
         test('should handle entity with only undefined values', () => {
-            const user = new JsonTestUser();
+            const user = new JsonTestEntity();
             const json = user.toJSON();
 
             expect(json).toEqual({});
@@ -224,7 +214,7 @@ describe('BaseEntity toJSON() Method', () => {
         });
 
         test('should handle null values correctly', async () => {
-            const user = JsonTestUser.build({
+            const user = JsonTestEntity.build({
                 name: 'Null Test',
                 age: 30,
             });
@@ -243,7 +233,7 @@ describe('BaseEntity toJSON() Method', () => {
         });
 
         test('should be consistent across multiple calls', () => {
-            const user = JsonTestUser.build({
+            const user = JsonTestEntity.build({
                 name: 'Consistency Test',
                 email: 'test@example.com',
                 age: 30,

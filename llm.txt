@@ -494,10 +494,65 @@ const dataSource = new DataSource({
   nullable: false,        // Allow NULL values
   unique: true,          // Unique constraint
   index: true,           // Create index
-  sqlDefault: 'CURRENT_TIMESTAMP', // SQL default value
+  sqlDefault: 'CURRENT_TIMESTAMP', // SQL default value (string | number | boolean | null)
   default: 'active'      // JavaScript default value
 })
 ```
+
+### SQL Default Values
+
+The `sqlDefault` option supports expanded types with enhanced SQL expression detection:
+
+```typescript
+@Entity('enhanced_defaults')
+export class EnhancedEntity extends BaseEntity {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  // String literals (quoted in SQL)
+  @Column({ type: 'text', sqlDefault: 'active' })
+  status!: string;
+
+  // Numeric values (unquoted in SQL)
+  @Column({ type: 'integer', sqlDefault: 42 })
+  count!: number;
+
+  @Column({ type: 'real', sqlDefault: 3.14 })
+  pi!: number;
+
+  // Boolean values (converted to 1/0 for SQLite)
+  @Column({ type: 'integer', sqlDefault: true })
+  isActive!: boolean;
+
+  // Null values
+  @Column({ type: 'text', nullable: true, sqlDefault: null })
+  optionalField?: string;
+
+  // SQL functions (case-insensitive detection)
+  @Column({ type: 'text', sqlDefault: 'CURRENT_TIMESTAMP' })
+  createdAt!: string;
+
+  @Column({ type: 'text', sqlDefault: 'current_time' })  // lowercase works
+  timeField!: string;
+
+  @Column({ type: 'text', sqlDefault: 'Current_Date' })  // mixed case works
+  dateField!: string;
+
+  // SQLite functions
+  @Column({ type: 'real', sqlDefault: 'RANDOM()' })
+  randomValue!: number;
+
+  @Column({ type: 'text', sqlDefault: 'default_text' })
+  defaultValue!: string;
+}
+```
+
+**SQL Expression Detection**:
+- **Case-insensitive** matching for SQL functions: `CURRENT_TIMESTAMP`, `current_time`, `Current_Date`
+- **SQLite functions**: `RANDOM()`, `ABS()`, `COALESCE()`, `DEFAULT`
+- **All-uppercase constants**: `NULL`, `TRUE`, `FALSE`
+- **String literals**: Everything else is quoted as string literals
+- **Smart detection**: Avoids false positives like `'The current time is now'`
 
 ## Troubleshooting
 

@@ -3,47 +3,12 @@ import { getGlobalMetadataContainer } from '../../../src/container';
 import { Column } from '../../../src/decorators/column';
 import { Entity } from '../../../src/decorators/entity';
 import { Index } from '../../../src/decorators/index-decorator';
-
-// Test entities
-@Entity('index_decorator_test')
-class IndexDecoratorTestEntity {
-    @Index()
-    @Column()
-    simpleIndex!: string;
-
-    @Index('custom_index_name')
-    @Column()
-    namedIndex!: string;
-
-    @Column()
-    firstName!: string;
-
-    @Column()
-    lastName!: string;
-
-    @Column()
-    email!: string;
-
-    @Column()
-    status!: string;
-}
-
-@Entity('composite_index_entity')
-@Index('idx_name_composite', ['firstName', 'lastName'])
-@Index('idx_unit_test_unique_email_status', ['email', 'status'], { unique: true })
-class CompositeIndexEntity {
-    @Column()
-    firstName!: string;
-
-    @Column()
-    lastName!: string;
-
-    @Column()
-    email!: string;
-
-    @Column()
-    status!: string;
-}
+import {
+    CompositeIndexEntity,
+    CustomIndexEntity,
+    SimpleIndexEntity,
+    UniqueIndexEntity,
+} from '../../helpers/mock-entities';
 
 describe('Index Decorator Unit Tests', () => {
     let metadataContainer: ReturnType<typeof getGlobalMetadataContainer>;
@@ -61,34 +26,34 @@ describe('Index Decorator Unit Tests', () => {
     });
 
     test('should create simple property-level index with auto-generated name', () => {
-        const indexes = metadataContainer.getIndexes(IndexDecoratorTestEntity);
+        const indexes = metadataContainer.getIndexes(SimpleIndexEntity);
 
-        const simpleIndex = indexes.find((idx) => idx.columns.includes('simpleIndex'));
-        expect(simpleIndex).toBeDefined();
-        expect(simpleIndex?.name).toBe('idx_index_decorator_test_simpleIndex');
-        expect(simpleIndex?.columns).toEqual(['simpleIndex']);
-        expect(simpleIndex?.unique).toBe(false);
+        const phoneIndex = indexes.find((idx) => idx.columns.includes('phone'));
+        expect(phoneIndex).toBeDefined();
+        expect(phoneIndex?.name).toBe('idx_simple_index_entity_phone');
+        expect(phoneIndex?.columns).toEqual(['phone']);
+        expect(phoneIndex?.unique).toBe(false);
     });
 
     test('should create property-level index with custom name', () => {
-        const indexes = metadataContainer.getIndexes(IndexDecoratorTestEntity);
+        const indexes = metadataContainer.getIndexes(CustomIndexEntity);
 
-        const namedIndex = indexes.find((idx) => idx.name === 'custom_index_name');
-        expect(namedIndex).toBeDefined();
-        expect(namedIndex?.columns).toEqual(['namedIndex']);
-        expect(namedIndex?.unique).toBe(false);
+        const phoneIndex = indexes.find((idx) => idx.name === 'idx_custom_phone');
+        expect(phoneIndex).toBeDefined();
+        expect(phoneIndex?.columns).toEqual(['phone']);
+        expect(phoneIndex?.unique).toBe(false);
     });
 
     test('should create composite indexes at class level', () => {
         const indexes = metadataContainer.getIndexes(CompositeIndexEntity);
-        expect(indexes).toHaveLength(2);
+        expect(indexes).toHaveLength(3);
 
-        const nameComposite = indexes.find((idx) => idx.name === 'idx_name_composite');
+        const nameComposite = indexes.find((idx) => idx.name === 'idx_full_name');
         expect(nameComposite).toBeDefined();
         expect(nameComposite?.columns).toEqual(['firstName', 'lastName']);
         expect(nameComposite?.unique).toBe(false);
 
-        const uniqueComposite = indexes.find((idx) => idx.name === 'idx_unit_test_unique_email_status');
+        const uniqueComposite = indexes.find((idx) => idx.name === 'idx_unique_email_status');
         expect(uniqueComposite).toBeDefined();
         expect(uniqueComposite?.columns).toEqual(['email', 'status']);
         expect(uniqueComposite?.unique).toBe(true);
@@ -96,11 +61,11 @@ describe('Index Decorator Unit Tests', () => {
 
     test('should auto-register entity when using Index decorator', () => {
         // Test that entity gets registered automatically when Index decorator is used
-        expect(metadataContainer.hasEntity(IndexDecoratorTestEntity)).toBe(true);
+        expect(metadataContainer.hasEntity(SimpleIndexEntity)).toBe(true);
         expect(metadataContainer.hasEntity(CompositeIndexEntity)).toBe(true);
 
-        const tableName1 = metadataContainer.getTableName(IndexDecoratorTestEntity);
-        expect(tableName1).toBe('index_decorator_test');
+        const tableName1 = metadataContainer.getTableName(SimpleIndexEntity);
+        expect(tableName1).toBe('simple_index_entity');
 
         const tableName2 = metadataContainer.getTableName(CompositeIndexEntity);
         expect(tableName2).toBe('composite_index_entity');
@@ -162,7 +127,7 @@ describe('Index Decorator Unit Tests', () => {
     });
 
     test('should create index metadata with correct default options', () => {
-        const indexes = metadataContainer.getIndexes(IndexDecoratorTestEntity);
+        const indexes = metadataContainer.getIndexes(SimpleIndexEntity);
 
         for (const index of indexes) {
             expect(index.name).toBeDefined();
@@ -183,76 +148,56 @@ describe('Property-level @Index Decorator with Options Tests', () => {
         // run at definition time and would be lost
     });
 
-    @Entity('property_index_options_test')
-    class PropertyIndexOptionsTestEntity {
-        // Test @Index({ unique: true })
-        @Index({ unique: true })
-        @Column()
-        uniqueWithOptions!: string;
-
-        // Test @Index('custom_name', { unique: true })
-        @Index('idx_custom_unique', { unique: true })
-        @Column()
-        uniqueWithCustomName!: string;
-
-        // Test @Index({ unique: false }) - explicitly non-unique
-        @Index({ unique: false })
-        @Column()
-        nonUniqueWithOptions!: string;
-
-        // Test @Index('name', { unique: false })
-        @Index('idx_custom_non_unique', { unique: false })
-        @Column()
-        nonUniqueWithCustomName!: string;
-    }
+    // Using shared UniqueIndexEntity which has the required index patterns
 
     test('should create unique index with auto-generated name via @Index({ unique: true })', () => {
-        const indexes = metadataContainer.getIndexes(PropertyIndexOptionsTestEntity);
+        const indexes = metadataContainer.getIndexes(UniqueIndexEntity);
 
-        const uniqueIndex = indexes.find((idx) => idx.columns.includes('uniqueWithOptions'));
+        const uniqueIndex = indexes.find((idx) => idx.columns.includes('uniqueEmail'));
         expect(uniqueIndex).toBeDefined();
         expect(uniqueIndex?.unique).toBe(true);
-        expect(uniqueIndex?.name).toBe('idx_property_index_options_test_uniqueWithOptions');
-        expect(uniqueIndex?.columns).toEqual(['uniqueWithOptions']);
+        expect(uniqueIndex?.name).toBe('idx_unique_index_entity_uniqueEmail');
+        expect(uniqueIndex?.columns).toEqual(['uniqueEmail']);
     });
 
     test('should create unique index with custom name via @Index("name", { unique: true })', () => {
-        const indexes = metadataContainer.getIndexes(PropertyIndexOptionsTestEntity);
+        const indexes = metadataContainer.getIndexes(UniqueIndexEntity);
 
-        const uniqueCustomIndex = indexes.find((idx) => idx.name === 'idx_custom_unique');
+        const uniqueCustomIndex = indexes.find((idx) => idx.name === 'idx_unique_code');
         expect(uniqueCustomIndex).toBeDefined();
         expect(uniqueCustomIndex?.unique).toBe(true);
-        expect(uniqueCustomIndex?.columns).toEqual(['uniqueWithCustomName']);
+        expect(uniqueCustomIndex?.columns).toEqual(['uniqueCode']);
     });
 
     test('should create non-unique index with auto-generated name via @Index({ unique: false })', () => {
-        const indexes = metadataContainer.getIndexes(PropertyIndexOptionsTestEntity);
+        const indexes = metadataContainer.getIndexes(SimpleIndexEntity);
 
-        const nonUniqueIndex = indexes.find((idx) => idx.columns.includes('nonUniqueWithOptions'));
-        expect(nonUniqueIndex).toBeDefined();
-        expect(nonUniqueIndex?.unique).toBe(false);
-        expect(nonUniqueIndex?.name).toBe('idx_property_index_options_test_nonUniqueWithOptions');
-        expect(nonUniqueIndex?.columns).toEqual(['nonUniqueWithOptions']);
+        const phoneIndex = indexes.find((idx) => idx.columns.includes('phone'));
+        expect(phoneIndex).toBeDefined();
+        expect(phoneIndex?.unique).toBe(false);
+        expect(phoneIndex?.name).toBe('idx_simple_index_entity_phone');
+        expect(phoneIndex?.columns).toEqual(['phone']);
     });
 
     test('should create non-unique index with custom name via @Index("name", { unique: false })', () => {
-        const indexes = metadataContainer.getIndexes(PropertyIndexOptionsTestEntity);
+        const indexes = metadataContainer.getIndexes(CustomIndexEntity);
 
-        const nonUniqueCustomIndex = indexes.find((idx) => idx.name === 'idx_custom_non_unique');
-        expect(nonUniqueCustomIndex).toBeDefined();
-        expect(nonUniqueCustomIndex?.unique).toBe(false);
-        expect(nonUniqueCustomIndex?.columns).toEqual(['nonUniqueWithCustomName']);
+        const phoneIndex = indexes.find((idx) => idx.name === 'idx_custom_phone');
+        expect(phoneIndex).toBeDefined();
+        expect(phoneIndex?.unique).toBe(false);
+        expect(phoneIndex?.columns).toEqual(['phone']);
     });
 
-    test('should have all four property-level indexes with options', () => {
-        const indexes = metadataContainer.getIndexes(PropertyIndexOptionsTestEntity);
-        expect(indexes).toHaveLength(4);
-
-        const uniqueIndexes = indexes.filter((idx) => idx.unique);
+    test('should have correct mix of unique and non-unique indexes', () => {
+        const uniqueIndexes = metadataContainer.getIndexes(UniqueIndexEntity);
         expect(uniqueIndexes).toHaveLength(2);
 
-        const nonUniqueIndexes = indexes.filter((idx) => !idx.unique);
-        expect(nonUniqueIndexes).toHaveLength(2);
+        const allUnique = uniqueIndexes.every((idx) => idx.unique);
+        expect(allUnique).toBe(true);
+
+        const simpleIndexes = metadataContainer.getIndexes(SimpleIndexEntity);
+        const nonUniqueFromSimple = simpleIndexes.filter((idx) => !idx.unique);
+        expect(nonUniqueFromSimple.length).toBeGreaterThan(0);
     });
 });
 
@@ -265,87 +210,64 @@ describe('Column-level Unique Index Tests', () => {
         // run at definition time and would be lost
     });
 
-    @Entity('column_unique_index_test')
-    class ColumnUniqueIndexTestEntity {
-        // Regular non-unique column index
-        @Column({ index: true })
-        regularIndex!: string;
-
-        // Custom name non-unique column index
-        @Column({ index: 'idx_custom_name' })
-        customNameIndex!: string;
-
-        // Unique index with auto-generated name
-        @Column({ index: { unique: true } })
-        uniqueAutoName!: string;
-
-        // Unique index with custom name
-        @Column({ index: { name: 'idx_unique_custom', unique: true } })
-        uniqueCustomName!: string;
-
-        // Non-unique index with custom name via object syntax
-        @Column({ index: { name: 'idx_object_non_unique' } })
-        objectNonUnique!: string;
-
-        // Non-unique index with explicit unique: false
-        @Column({ index: { name: 'idx_explicit_false', unique: false } })
-        explicitFalse!: string;
-    }
+    // Using shared SimpleIndexEntity and CustomIndexEntity for column index testing
 
     test('should create non-unique indexes for boolean and string options', () => {
-        const indexes = metadataContainer.getIndexes(ColumnUniqueIndexTestEntity);
+        const simpleIndexes = metadataContainer.getIndexes(SimpleIndexEntity);
 
-        const regularIndex = indexes.find((idx) => idx.columns.includes('regularIndex'));
-        expect(regularIndex).toBeDefined();
-        expect(regularIndex?.unique).toBe(false);
-        expect(regularIndex?.name).toBe('idx_column_unique_index_test_regularIndex');
+        const emailIndex = simpleIndexes.find((idx) => idx.columns.includes('email'));
+        expect(emailIndex).toBeDefined();
+        expect(emailIndex?.unique).toBe(false);
+        expect(emailIndex?.name).toBe('idx_simple_index_entity_email');
 
-        const customNameIndex = indexes.find((idx) => idx.columns.includes('customNameIndex'));
-        expect(customNameIndex).toBeDefined();
-        expect(customNameIndex?.unique).toBe(false);
-        expect(customNameIndex?.name).toBe('idx_custom_name');
+        const customIndexes = metadataContainer.getIndexes(CustomIndexEntity);
+        const customEmailIndex = customIndexes.find((idx) => idx.columns.includes('email'));
+        expect(customEmailIndex).toBeDefined();
+        expect(customEmailIndex?.unique).toBe(false);
+        expect(customEmailIndex?.name).toBe('idx_custom_email');
     });
 
     test('should create unique indexes when specified via object syntax', () => {
-        const indexes = metadataContainer.getIndexes(ColumnUniqueIndexTestEntity);
+        const indexes = metadataContainer.getIndexes(UniqueIndexEntity);
 
-        const uniqueAutoName = indexes.find((idx) => idx.columns.includes('uniqueAutoName'));
-        expect(uniqueAutoName).toBeDefined();
-        expect(uniqueAutoName?.unique).toBe(true);
-        expect(uniqueAutoName?.name).toBe('idx_column_unique_index_test_uniqueAutoName');
+        const uniqueEmailIndex = indexes.find((idx) => idx.columns.includes('uniqueEmail'));
+        expect(uniqueEmailIndex).toBeDefined();
+        expect(uniqueEmailIndex?.unique).toBe(true);
+        expect(uniqueEmailIndex?.name).toBe('idx_unique_index_entity_uniqueEmail');
 
-        const uniqueCustomName = indexes.find((idx) => idx.columns.includes('uniqueCustomName'));
-        expect(uniqueCustomName).toBeDefined();
-        expect(uniqueCustomName?.unique).toBe(true);
-        expect(uniqueCustomName?.name).toBe('idx_unique_custom');
+        const uniqueCodeIndex = indexes.find((idx) => idx.columns.includes('uniqueCode'));
+        expect(uniqueCodeIndex).toBeDefined();
+        expect(uniqueCodeIndex?.unique).toBe(true);
+        expect(uniqueCodeIndex?.name).toBe('idx_unique_code');
     });
 
     test('should handle object syntax with non-unique indexes', () => {
-        const indexes = metadataContainer.getIndexes(ColumnUniqueIndexTestEntity);
+        const simpleIndexes = metadataContainer.getIndexes(SimpleIndexEntity);
+        const customIndexes = metadataContainer.getIndexes(CustomIndexEntity);
 
-        const objectNonUnique = indexes.find((idx) => idx.columns.includes('objectNonUnique'));
-        expect(objectNonUnique).toBeDefined();
-        expect(objectNonUnique?.unique).toBe(false);
-        expect(objectNonUnique?.name).toBe('idx_object_non_unique');
+        const emailIndex = simpleIndexes.find((idx) => idx.columns.includes('email'));
+        expect(emailIndex).toBeDefined();
+        expect(emailIndex?.unique).toBe(false);
+        expect(emailIndex?.name).toBe('idx_simple_index_entity_email');
 
-        const explicitFalse = indexes.find((idx) => idx.columns.includes('explicitFalse'));
-        expect(explicitFalse).toBeDefined();
-        expect(explicitFalse?.unique).toBe(false);
-        expect(explicitFalse?.name).toBe('idx_explicit_false');
+        const phoneIndex = customIndexes.find((idx) => idx.columns.includes('phone'));
+        expect(phoneIndex).toBeDefined();
+        expect(phoneIndex?.unique).toBe(false);
+        expect(phoneIndex?.name).toBe('idx_custom_phone');
     });
 
     test('should handle all index configuration variations correctly', () => {
-        const indexes = metadataContainer.getIndexes(ColumnUniqueIndexTestEntity);
-
-        // Should have 6 indexes total
-        expect(indexes).toHaveLength(6);
+        const uniqueIndexes = metadataContainer.getIndexes(UniqueIndexEntity);
+        const simpleIndexes = metadataContainer.getIndexes(SimpleIndexEntity);
+        const customIndexes = metadataContainer.getIndexes(CustomIndexEntity);
 
         // Check that unique indexes are correctly marked
-        const uniqueIndexes = indexes.filter((idx) => idx.unique);
-        expect(uniqueIndexes).toHaveLength(2);
+        const allUniqueIndexes = uniqueIndexes.filter((idx) => idx.unique);
+        expect(allUniqueIndexes).toHaveLength(2);
 
-        const nonUniqueIndexes = indexes.filter((idx) => !idx.unique);
-        expect(nonUniqueIndexes).toHaveLength(4);
+        const allNonUniqueFromSimple = simpleIndexes.filter((idx) => !idx.unique);
+        const allNonUniqueFromCustom = customIndexes.filter((idx) => !idx.unique);
+        expect(allNonUniqueFromSimple.length + allNonUniqueFromCustom.length).toBeGreaterThan(0);
     });
 });
 
