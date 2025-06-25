@@ -542,7 +542,7 @@ export class EnhancedEntity extends BaseEntity {
   @Column({ type: 'real', sqlDefault: 'RANDOM()' })
   randomValue!: number;
 
-  @Column({ type: 'text', sqlDefault: 'DEFAULT' })
+  @Column({ type: 'text', sqlDefault: 'default_text' })
   defaultValue!: string;
 }
 ```
