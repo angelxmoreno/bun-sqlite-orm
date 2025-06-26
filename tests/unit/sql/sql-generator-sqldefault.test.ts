@@ -1,14 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 import { SqlGenerator } from '../../../src/sql/sql-generator';
-import type { EntityMetadata } from '../../../src/types';
+import { createMockEntityMetadata } from '../../helpers/mock-infrastructure';
 
 describe('SqlGenerator - SQL Default Value Formatting', () => {
     const sqlGenerator = new SqlGenerator();
 
     test('should format numeric sqlDefault values correctly', () => {
-        const entityMetadata: EntityMetadata = {
-            target: class TestEntity {},
-            tableName: 'test_table',
+        const entityMetadata = createMockEntityMetadata({
             columns: new Map([
                 [
                     'integerField',
@@ -47,10 +45,7 @@ describe('SqlGenerator - SQL Default Value Formatting', () => {
                     },
                 ],
             ]),
-            primaryColumns: [],
-            indexes: [],
-            isExplicitlyRegistered: false,
-        };
+        });
 
         const sql = sqlGenerator.generateCreateTable(entityMetadata);
 
@@ -60,9 +55,7 @@ describe('SqlGenerator - SQL Default Value Formatting', () => {
     });
 
     test('should format boolean sqlDefault values correctly', () => {
-        const entityMetadata: EntityMetadata = {
-            target: class TestEntity {},
-            tableName: 'test_table',
+        const entityMetadata = createMockEntityMetadata({
             columns: new Map([
                 [
                     'trueField',
@@ -89,10 +82,7 @@ describe('SqlGenerator - SQL Default Value Formatting', () => {
                     },
                 ],
             ]),
-            primaryColumns: [],
-            indexes: [],
-            isExplicitlyRegistered: false,
-        };
+        });
 
         const sql = sqlGenerator.generateCreateTable(entityMetadata);
 
@@ -101,9 +91,7 @@ describe('SqlGenerator - SQL Default Value Formatting', () => {
     });
 
     test('should format null sqlDefault values correctly', () => {
-        const entityMetadata: EntityMetadata = {
-            target: class TestEntity {},
-            tableName: 'test_table',
+        const entityMetadata = createMockEntityMetadata({
             columns: new Map([
                 [
                     'nullField',
@@ -118,10 +106,7 @@ describe('SqlGenerator - SQL Default Value Formatting', () => {
                     },
                 ],
             ]),
-            primaryColumns: [],
-            indexes: [],
-            isExplicitlyRegistered: false,
-        };
+        });
 
         const sql = sqlGenerator.generateCreateTable(entityMetadata);
 
@@ -129,9 +114,7 @@ describe('SqlGenerator - SQL Default Value Formatting', () => {
     });
 
     test('should format string sqlDefault values correctly', () => {
-        const entityMetadata: EntityMetadata = {
-            target: class TestEntity {},
-            tableName: 'test_table',
+        const entityMetadata = createMockEntityMetadata({
             columns: new Map([
                 [
                     'literalField',
@@ -170,10 +153,7 @@ describe('SqlGenerator - SQL Default Value Formatting', () => {
                     },
                 ],
             ]),
-            primaryColumns: [],
-            indexes: [],
-            isExplicitlyRegistered: false,
-        };
+        });
 
         const sql = sqlGenerator.generateCreateTable(entityMetadata);
 
@@ -183,8 +163,7 @@ describe('SqlGenerator - SQL Default Value Formatting', () => {
     });
 
     test('should handle mixed sqlDefault types in one table', () => {
-        const entityMetadata: EntityMetadata = {
-            target: class TestEntity {},
+        const entityMetadata = createMockEntityMetadata({
             tableName: 'mixed_defaults',
             columns: new Map([
                 [
@@ -248,10 +227,7 @@ describe('SqlGenerator - SQL Default Value Formatting', () => {
                     },
                 ],
             ]),
-            primaryColumns: [],
-            indexes: [],
-            isExplicitlyRegistered: false,
-        };
+        });
 
         const sql = sqlGenerator.generateCreateTable(entityMetadata);
 
@@ -263,8 +239,7 @@ describe('SqlGenerator - SQL Default Value Formatting', () => {
     });
 
     test('should handle enhanced SQL expression detection', () => {
-        const entityMetadata: EntityMetadata = {
-            target: class TestEntity {},
+        const entityMetadata = createMockEntityMetadata({
             tableName: 'enhanced_sql_expressions',
             columns: new Map([
                 // Case variations of CURRENT_ functions
@@ -356,10 +331,7 @@ describe('SqlGenerator - SQL Default Value Formatting', () => {
                     },
                 ],
             ]),
-            primaryColumns: [],
-            indexes: [],
-            isExplicitlyRegistered: false,
-        };
+        });
 
         const sql = sqlGenerator.generateCreateTable(entityMetadata);
 
@@ -376,8 +348,7 @@ describe('SqlGenerator - SQL Default Value Formatting', () => {
     });
 
     test('should handle false positive edge cases', () => {
-        const entityMetadata: EntityMetadata = {
-            target: class TestEntity {},
+        const entityMetadata = createMockEntityMetadata({
             tableName: 'false_positive_test',
             columns: new Map([
                 // Strings that contain SQL-like patterns but should be literals
@@ -443,10 +414,7 @@ describe('SqlGenerator - SQL Default Value Formatting', () => {
                     },
                 ],
             ]),
-            primaryColumns: [],
-            indexes: [],
-            isExplicitlyRegistered: false,
-        };
+        });
 
         const sql = sqlGenerator.generateCreateTable(entityMetadata);
 
