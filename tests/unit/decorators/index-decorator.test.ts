@@ -61,10 +61,10 @@ describe('Index Decorator Unit Tests', () => {
             @Column({ type: 'text' })
             name!: string;
 
-            @Column({ type: 'text', index: 'idx_custom_email' })
+            @Column({ type: 'text', index: 'idx_test_custom_email' })
             email!: string;
 
-            @Index('idx_custom_phone')
+            @Index('idx_test_custom_phone')
             @Column({ type: 'text' })
             phone!: string;
 
@@ -74,7 +74,7 @@ describe('Index Decorator Unit Tests', () => {
 
         const indexes = metadataContainer.getIndexes(TestCustomIndexEntity);
 
-        const phoneIndex = indexes.find((idx) => idx.name === 'idx_custom_phone');
+        const phoneIndex = indexes.find((idx) => idx.name === 'idx_test_custom_phone');
         expect(phoneIndex).toBeDefined();
         expect(phoneIndex?.columns).toEqual(['phone']);
         expect(phoneIndex?.unique).toBe(false);
@@ -83,9 +83,9 @@ describe('Index Decorator Unit Tests', () => {
     test('should create composite indexes at class level', () => {
         // Define test entity inline to avoid inheritance dependency issues
         @Entity('test_composite_index_entity')
-        @Index('idx_full_name', ['firstName', 'lastName'])
-        @Index('idx_name_age', ['firstName', 'lastName', 'age'])
-        @Index('idx_unique_email_status', ['email', 'status'], { unique: true })
+        @Index('idx_test_full_name', ['firstName', 'lastName'])
+        @Index('idx_test_name_age_composite', ['firstName', 'lastName', 'age'])
+        @Index('idx_test_unique_email_status', ['email', 'status'], { unique: true })
         class TestCompositeIndexEntity extends BaseEntity {
             @PrimaryGeneratedColumn('int')
             id!: number;
@@ -109,12 +109,12 @@ describe('Index Decorator Unit Tests', () => {
         const indexes = metadataContainer.getIndexes(TestCompositeIndexEntity);
         expect(indexes).toHaveLength(3);
 
-        const nameComposite = indexes.find((idx) => idx.name === 'idx_full_name');
+        const nameComposite = indexes.find((idx) => idx.name === 'idx_test_full_name');
         expect(nameComposite).toBeDefined();
         expect(nameComposite?.columns).toEqual(['firstName', 'lastName']);
         expect(nameComposite?.unique).toBe(false);
 
-        const uniqueComposite = indexes.find((idx) => idx.name === 'idx_unique_email_status');
+        const uniqueComposite = indexes.find((idx) => idx.name === 'idx_test_unique_email_status');
         expect(uniqueComposite).toBeDefined();
         expect(uniqueComposite?.columns).toEqual(['email', 'status']);
         expect(uniqueComposite?.unique).toBe(true);
@@ -408,7 +408,7 @@ describe('Column-level Unique Index Tests', () => {
             @PrimaryGeneratedColumn('int')
             id!: number;
 
-            @Column({ type: 'text', index: 'idx_column_custom_email' })
+            @Column({ type: 'text', index: 'idx_column_test_email' })
             email!: string;
         }
 
@@ -422,7 +422,7 @@ describe('Column-level Unique Index Tests', () => {
         const customEmailIndex = customIndexes.find((idx) => idx.columns.includes('email'));
         expect(customEmailIndex).toBeDefined();
         expect(customEmailIndex?.unique).toBe(false);
-        expect(customEmailIndex?.name).toBe('idx_column_custom_email');
+        expect(customEmailIndex?.name).toBe('idx_column_test_email');
     });
 
     test('should create unique indexes when specified via object syntax', () => {
@@ -470,7 +470,7 @@ describe('Column-level Unique Index Tests', () => {
             @PrimaryGeneratedColumn('int')
             id!: number;
 
-            @Index('idx_object_syntax_phone')
+            @Index('idx_test_syntax_phone')
             @Column({ type: 'text' })
             phone!: string;
         }
@@ -486,7 +486,7 @@ describe('Column-level Unique Index Tests', () => {
         const phoneIndex = customIndexes.find((idx) => idx.columns.includes('phone'));
         expect(phoneIndex).toBeDefined();
         expect(phoneIndex?.unique).toBe(false);
-        expect(phoneIndex?.name).toBe('idx_object_syntax_phone');
+        expect(phoneIndex?.name).toBe('idx_test_syntax_phone');
     });
 
     test('should handle all index configuration variations correctly', () => {
@@ -523,7 +523,7 @@ describe('Column-level Unique Index Tests', () => {
             @PrimaryGeneratedColumn('int')
             id!: number;
 
-            @Index('idx_config_custom_phone')
+            @Index('idx_test_config_phone')
             @Column({ type: 'text' })
             phone!: string;
         }
