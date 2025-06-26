@@ -40,6 +40,7 @@ describe('SqlGenerator Composite Primary Keys', () => {
                 ]),
                 primaryColumns: [],
                 indexes: [],
+                isExplicitlyRegistered: false,
             };
 
             const sql = sqlGenerator.generateCreateTable(mockEntity);
@@ -80,6 +81,7 @@ describe('SqlGenerator Composite Primary Keys', () => {
                 ]),
                 primaryColumns: [],
                 indexes: [],
+                isExplicitlyRegistered: false,
             };
 
             const sql = sqlGenerator.generateCreateTable(mockEntity);
@@ -130,6 +132,7 @@ describe('SqlGenerator Composite Primary Keys', () => {
                 ]),
                 primaryColumns: [],
                 indexes: [],
+                isExplicitlyRegistered: false,
             };
 
             const sql = sqlGenerator.generateCreateTable(mockEntity);
@@ -191,6 +194,7 @@ describe('SqlGenerator Composite Primary Keys', () => {
                 ]),
                 primaryColumns: [],
                 indexes: [],
+                isExplicitlyRegistered: false,
             };
 
             const sql = sqlGenerator.generateCreateTable(mockEntity);
@@ -252,6 +256,7 @@ describe('SqlGenerator Composite Primary Keys', () => {
                 ]),
                 primaryColumns: [],
                 indexes: [],
+                isExplicitlyRegistered: false,
             };
 
             const sql = sqlGenerator.generateCreateTable(mockEntity);
@@ -315,6 +320,7 @@ describe('SqlGenerator Composite Primary Keys', () => {
                 ]),
                 primaryColumns: [],
                 indexes: [],
+                isExplicitlyRegistered: false,
             };
 
             const sql = sqlGenerator.generateCreateTable(mockEntity);
@@ -355,6 +361,7 @@ describe('SqlGenerator Composite Primary Keys', () => {
                 ]),
                 primaryColumns: [],
                 indexes: [],
+                isExplicitlyRegistered: false,
             };
 
             const sql = sqlGenerator.generateCreateTable(mockEntity);
@@ -401,6 +408,7 @@ describe('SqlGenerator Composite Primary Keys', () => {
                 ]),
                 primaryColumns: [],
                 indexes: [],
+                isExplicitlyRegistered: false,
             };
 
             const sql = sqlGenerator.generateCreateTable(mockEntity);

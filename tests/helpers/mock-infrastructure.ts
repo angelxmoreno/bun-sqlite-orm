@@ -75,6 +75,7 @@ export function mockMetadataContainer(): MockMetadataContainer {
                     columns: new Map(),
                     primaryColumns: [],
                     indexes: [],
+                    isExplicitlyRegistered: false,
                 }) as EntityMetadata
         ),
         addEntity: mock(),

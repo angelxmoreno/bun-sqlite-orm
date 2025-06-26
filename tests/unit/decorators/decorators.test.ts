@@ -56,11 +56,11 @@ describe('Decorators', () => {
             expect(tableName).toBe('test_simple');
         });
 
-        test('should register entity without explicit decorator when columns are added', () => {
-            // Using shared AutoRegisteredEntity which is auto-registered by column decorator
+        test('should register entity with explicit @Entity decorator', () => {
+            // Using shared AutoRegisteredEntity which now has explicit @Entity decorator
             expect(metadataContainer.hasEntity(AutoRegisteredEntity as EntityConstructor)).toBe(true);
             const tableName = metadataContainer.getTableName(AutoRegisteredEntity as EntityConstructor);
-            expect(tableName).toBe('autoregisteredentity');
+            expect(tableName).toBe('auto_registered_entity');
         });
     });
 
@@ -223,18 +223,18 @@ describe('Decorators', () => {
         // Note: Composite primary key test removed - entities moved to prevent conflicts
     });
 
-    describe('Auto-registration', () => {
-        test('should auto-register entity when using any column decorator', () => {
-            // Using shared auto-registration entities
-            // All should be auto-registered
+    describe('Entity Registration', () => {
+        test('should register entities with explicit @Entity decorators', () => {
+            // Using shared entities that now have explicit @Entity decorators
+            // All should be explicitly registered
             expect(metadataContainer.hasEntity(AutoEntity1 as EntityConstructor)).toBe(true);
             expect(metadataContainer.hasEntity(AutoEntity2 as EntityConstructor)).toBe(true);
             expect(metadataContainer.hasEntity(AutoEntity3 as EntityConstructor)).toBe(true);
 
-            // Table names should be inferred from class names
-            expect(metadataContainer.getTableName(AutoEntity1 as EntityConstructor)).toBe('autoentity1');
-            expect(metadataContainer.getTableName(AutoEntity2 as EntityConstructor)).toBe('autoentity2');
-            expect(metadataContainer.getTableName(AutoEntity3 as EntityConstructor)).toBe('autoentity3');
+            // Table names should match explicit @Entity decorator names
+            expect(metadataContainer.getTableName(AutoEntity1 as EntityConstructor)).toBe('auto_entity1');
+            expect(metadataContainer.getTableName(AutoEntity2 as EntityConstructor)).toBe('auto_entity2');
+            expect(metadataContainer.getTableName(AutoEntity3 as EntityConstructor)).toBe('auto_entity3');
         });
 
         test('should prefer explicit @Entity table name over auto-registration', () => {

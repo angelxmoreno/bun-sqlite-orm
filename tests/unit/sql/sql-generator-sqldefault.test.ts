@@ -49,6 +49,7 @@ describe('SqlGenerator - SQL Default Value Formatting', () => {
             ]),
             primaryColumns: [],
             indexes: [],
+            isExplicitlyRegistered: false,
         };
 
         const sql = sqlGenerator.generateCreateTable(entityMetadata);
@@ -90,6 +91,7 @@ describe('SqlGenerator - SQL Default Value Formatting', () => {
             ]),
             primaryColumns: [],
             indexes: [],
+            isExplicitlyRegistered: false,
         };
 
         const sql = sqlGenerator.generateCreateTable(entityMetadata);
@@ -118,6 +120,7 @@ describe('SqlGenerator - SQL Default Value Formatting', () => {
             ]),
             primaryColumns: [],
             indexes: [],
+            isExplicitlyRegistered: false,
         };
 
         const sql = sqlGenerator.generateCreateTable(entityMetadata);
@@ -169,6 +172,7 @@ describe('SqlGenerator - SQL Default Value Formatting', () => {
             ]),
             primaryColumns: [],
             indexes: [],
+            isExplicitlyRegistered: false,
         };
 
         const sql = sqlGenerator.generateCreateTable(entityMetadata);
@@ -246,6 +250,7 @@ describe('SqlGenerator - SQL Default Value Formatting', () => {
             ]),
             primaryColumns: [],
             indexes: [],
+            isExplicitlyRegistered: false,
         };
 
         const sql = sqlGenerator.generateCreateTable(entityMetadata);
@@ -353,6 +358,7 @@ describe('SqlGenerator - SQL Default Value Formatting', () => {
             ]),
             primaryColumns: [],
             indexes: [],
+            isExplicitlyRegistered: false,
         };
 
         const sql = sqlGenerator.generateCreateTable(entityMetadata);
@@ -439,6 +445,7 @@ describe('SqlGenerator - SQL Default Value Formatting', () => {
             ]),
             primaryColumns: [],
             indexes: [],
+            isExplicitlyRegistered: false,
         };
 
         const sql = sqlGenerator.generateCreateTable(entityMetadata);

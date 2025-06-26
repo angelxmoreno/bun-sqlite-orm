@@ -43,6 +43,7 @@ export interface EntityMetadata {
     columns: Map<string, ColumnMetadata>;
     primaryColumns: ColumnMetadata[];
     indexes: IndexMetadata[];
+    isExplicitlyRegistered: boolean; // True if registered via @Entity decorator
 }
 
 export interface ColumnMetadata {

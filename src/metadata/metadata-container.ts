@@ -16,6 +16,7 @@ export class MetadataContainer {
                 columns: new Map(),
                 primaryColumns: [],
                 indexes: [],
+                isExplicitlyRegistered: isExplicit,
             });
         } else if (isExplicit) {
             // Allow @Entity decorator to override auto-registered table name
@@ -23,6 +24,7 @@ export class MetadataContainer {
             const existingMetadata = this.entities.get(target)!;
             const oldTableName = existingMetadata.tableName;
             existingMetadata.tableName = tableName;
+            existingMetadata.isExplicitlyRegistered = true; // Mark as explicitly registered
 
             // Update auto-generated index names that used the old table name
             for (const index of existingMetadata.indexes) {
@@ -68,6 +70,14 @@ export class MetadataContainer {
 
     getAllEntities(): EntityMetadata[] {
         return Array.from(this.entities.values());
+    }
+
+    /**
+     * Get only entities that were explicitly registered with @Entity decorator.
+     * This excludes auto-registered entities from column decorators that lack @Entity.
+     */
+    getExplicitEntities(): EntityMetadata[] {
+        return Array.from(this.entities.values()).filter((entity) => entity.isExplicitlyRegistered);
     }
 
     hasEntity(target: EntityConstructor): boolean {
