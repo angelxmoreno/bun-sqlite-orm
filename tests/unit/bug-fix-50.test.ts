@@ -1,19 +1,18 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 import { getGlobalMetadataContainer } from '../../src/container';
-import { DataSource } from '../../src/data-source';
 import { Column, Entity, PrimaryGeneratedColumn } from '../../src/decorators';
 import { BaseEntity } from '../../src/entity';
 import type { EntityConstructor } from '../../src/types';
 import { resetGlobalMetadata } from '../helpers/test-utils';
 
-describe('Bug Fix #50: Base Entity without @Entity decorator', () => {
+describe('Bug Fix #50: Base Entity without @Entity decorator (Unit Tests)', () => {
     beforeEach(() => {
         resetGlobalMetadata();
     });
 
-    test('should not create tables for entities without @Entity decorator', async () => {
-        // Create a base entity WITHOUT @Entity decorator
-        class BaseUserEntity extends BaseEntity {
+    test('should not include auto-registered entities in getExplicitEntities()', async () => {
+        // Create a base entity WITHOUT @Entity decorator (auto-registered only)
+        class TestBaseEntity extends BaseEntity {
             @PrimaryGeneratedColumn('int')
             id!: number;
 
@@ -21,9 +20,9 @@ describe('Bug Fix #50: Base Entity without @Entity decorator', () => {
             name!: string;
         }
 
-        // Create a child entity WITH @Entity decorator
-        @Entity('users')
-        class UserEntity extends BaseUserEntity {
+        // Create a child entity WITH @Entity decorator (explicitly registered)
+        @Entity('test_explicit')
+        class TestExplicitEntity extends TestBaseEntity {
             @Column({ type: 'text' })
             email!: string;
         }
@@ -31,136 +30,72 @@ describe('Bug Fix #50: Base Entity without @Entity decorator', () => {
         const metadataContainer = getGlobalMetadataContainer();
 
         // Both entities should be auto-registered for column metadata
-        expect(metadataContainer.hasEntity(BaseUserEntity as EntityConstructor)).toBe(true);
-        expect(metadataContainer.hasEntity(UserEntity as EntityConstructor)).toBe(true);
+        expect(metadataContainer.hasEntity(TestBaseEntity as EntityConstructor)).toBe(true);
+        expect(metadataContainer.hasEntity(TestExplicitEntity as EntityConstructor)).toBe(true);
 
         // But only explicit entities should be returned by getExplicitEntities()
         const explicitEntities = metadataContainer.getExplicitEntities();
         const explicitEntityNames = explicitEntities.map((e) => e.tableName);
 
-        expect(explicitEntityNames).toContain('users'); // UserEntity should be included
-        expect(explicitEntityNames).not.toContain('baseuserentity'); // BaseUserEntity should NOT be included
+        expect(explicitEntityNames).toContain('test_explicit'); // Explicit entity should be included
+        expect(explicitEntityNames).not.toContain('testbaseentity'); // Auto-registered entity should NOT be included
 
         // Verify the isExplicitlyRegistered flag is correct
-        const baseUserMetadata = metadataContainer.getEntityMetadata(BaseUserEntity as EntityConstructor);
-        const userMetadata = metadataContainer.getEntityMetadata(UserEntity as EntityConstructor);
+        const baseMetadata = metadataContainer.getEntityMetadata(TestBaseEntity as EntityConstructor);
+        const explicitMetadata = metadataContainer.getEntityMetadata(TestExplicitEntity as EntityConstructor);
 
-        expect(baseUserMetadata?.isExplicitlyRegistered).toBe(false);
-        expect(userMetadata?.isExplicitlyRegistered).toBe(true);
+        expect(baseMetadata?.isExplicitlyRegistered).toBe(false);
+        expect(explicitMetadata?.isExplicitlyRegistered).toBe(true);
     });
 
-    test('should only create tables for explicitly registered entities in DataSource', async () => {
-        // Create entities without @Entity decorator
-        class BaseProductEntity extends BaseEntity {
-            @PrimaryGeneratedColumn('int')
-            id!: number;
+    test('should track registration status correctly for multiple entity scenarios', async () => {
+        // Test multiple scenarios in one test to avoid entity duplication
 
+        // Scenario 1: Auto-registered entity
+        class AutoEntity extends BaseEntity {
             @Column({ type: 'text' })
-            name!: string;
+            prop!: string;
         }
 
-        class BaseOrderEntity extends BaseEntity {
-            @PrimaryGeneratedColumn('int')
-            id!: number;
-
-            @Column({ type: 'integer' })
-            total!: number;
-        }
-
-        // Create entities with @Entity decorator
-        @Entity('products')
-        class ProductEntity extends BaseProductEntity {
+        // Scenario 2: Explicitly registered entity
+        @Entity('explicit_entity')
+        class ExplicitEntity extends BaseEntity {
             @Column({ type: 'text' })
-            description!: string;
+            prop!: string;
         }
 
-        @Entity('orders')
-        class OrderEntity extends BaseOrderEntity {
+        // Scenario 3: Base class auto-registered, child explicitly registered
+        class BaseClass extends BaseEntity {
             @Column({ type: 'text' })
-            status!: string;
+            baseProp!: string;
         }
 
-        // Create DataSource with both types of entities
-        const dataSource = new DataSource({
-            database: ':memory:',
-            entities: [BaseProductEntity, BaseOrderEntity, ProductEntity, OrderEntity] as EntityConstructor[],
-        });
-
-        await dataSource.initialize();
-        await dataSource.runMigrations();
-
-        const db = dataSource.getDatabase();
-
-        // Check which tables were created
-        const tables = db
-            .query(`
-            SELECT name FROM sqlite_master 
-            WHERE type='table' AND name NOT LIKE 'sqlite_%'
-        `)
-            .all() as Array<{ name: string }>;
-
-        const tableNames = tables.map((t) => t.name);
-
-        // Only explicitly registered entities should have tables
-        expect(tableNames).toContain('products'); // ProductEntity has @Entity
-        expect(tableNames).toContain('orders'); // OrderEntity has @Entity
-        expect(tableNames).not.toContain('baseproductentity'); // BaseProductEntity lacks @Entity
-        expect(tableNames).not.toContain('baseorderentity'); // BaseOrderEntity lacks @Entity
-
-        await dataSource.destroy();
-    });
-
-    test('should verify that inheritance issue is separate from the base entity table creation issue', async () => {
-        // This test documents that inheritance is a separate issue (#51)
-        // The fix for #50 only prevents base entities without @Entity from creating tables
-        // Issue #51 deals with column inheritance between entities
-
-        // Create a base entity WITH @Entity decorator
-        @Entity('base_vehicles')
-        class BaseVehicleEntity extends BaseEntity {
-            @PrimaryGeneratedColumn('int')
-            id!: number;
-
+        @Entity('child_entity')
+        class ChildClass extends BaseClass {
             @Column({ type: 'text' })
-            brand!: string;
+            childProp!: string;
         }
 
-        // Create a child entity WITH @Entity decorator
-        @Entity('cars')
-        class CarEntity extends BaseVehicleEntity {
-            @Column({ type: 'integer' })
-            doors!: number;
-        }
+        const metadataContainer = getGlobalMetadataContainer();
+        const explicitEntities = metadataContainer.getExplicitEntities();
+        const explicitEntityNames = explicitEntities.map((e) => e.tableName);
 
-        const dataSource = new DataSource({
-            database: ':memory:',
-            entities: [BaseVehicleEntity, CarEntity] as EntityConstructor[],
-        });
+        // Verify explicit entities are included
+        expect(explicitEntityNames).toContain('explicit_entity');
+        expect(explicitEntityNames).toContain('child_entity');
 
-        await dataSource.initialize();
-        await dataSource.runMigrations();
+        // Verify auto-registered entities are excluded
+        expect(explicitEntityNames).not.toContain('autoentity');
+        expect(explicitEntityNames).not.toContain('baseclass');
 
-        const db = dataSource.getDatabase();
-
-        // Check which tables were created
-        const tables = db
-            .query(`
-            SELECT name FROM sqlite_master 
-            WHERE type='table' AND name NOT LIKE 'sqlite_%'
-        `)
-            .all() as Array<{ name: string }>;
-
-        const tableNames = tables.map((t) => t.name);
-
-        // Both explicitly registered entities should have tables (issue #50 is fixed)
-        expect(tableNames).toContain('base_vehicles'); // BaseVehicleEntity has @Entity
-        expect(tableNames).toContain('cars'); // CarEntity has @Entity
-
-        // NOTE: Inheritance of columns is issue #51, not issue #50
-        // Issue #50 was specifically about preventing table creation for entities without @Entity
-        // The inheritance problem where child entities don't inherit parent columns
-        // will be addressed separately in issue #51
-
-        await dataSource.destroy();
+        // Verify flags
+        expect(metadataContainer.getEntityMetadata(AutoEntity as EntityConstructor)?.isExplicitlyRegistered).toBe(
+            false
+        );
+        expect(metadataContainer.getEntityMetadata(ExplicitEntity as EntityConstructor)?.isExplicitlyRegistered).toBe(
+            true
+        );
+        expect(metadataContainer.getEntityMetadata(BaseClass as EntityConstructor)?.isExplicitlyRegistered).toBe(false);
+        expect(metadataContainer.getEntityMetadata(ChildClass as EntityConstructor)?.isExplicitlyRegistered).toBe(true);
     });
 });
