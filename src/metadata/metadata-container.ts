@@ -97,7 +97,30 @@ export class MetadataContainer {
         if (!metadata) {
             throw new Error(`Entity metadata not found for ${target.name}. Make sure to use @Entity decorator.`);
         }
-        return metadata.columns;
+
+        // Collect inherited columns from prototype chain
+        const allColumns = new Map<string, ColumnMetadata>(metadata.columns);
+        this.collectInheritedColumns(target, allColumns);
+
+        return allColumns;
+    }
+
+    private collectInheritedColumns(target: EntityConstructor, allColumns: Map<string, ColumnMetadata>): void {
+        // Walk up the prototype chain to collect inherited metadata
+        let currentTarget = Object.getPrototypeOf(target);
+
+        while (currentTarget && currentTarget !== Function.prototype && currentTarget.name) {
+            const parentMetadata = this.getEntityMetadata(currentTarget);
+            if (parentMetadata) {
+                // Add inherited columns (current class columns take precedence)
+                for (const [propertyName, columnMetadata] of parentMetadata.columns) {
+                    if (!allColumns.has(propertyName)) {
+                        allColumns.set(propertyName, columnMetadata);
+                    }
+                }
+            }
+            currentTarget = Object.getPrototypeOf(currentTarget);
+        }
     }
 
     getPrimaryColumns(target: EntityConstructor): ColumnMetadata[] {
@@ -105,7 +128,32 @@ export class MetadataContainer {
         if (!metadata) {
             throw new Error(`Entity metadata not found for ${target.name}. Make sure to use @Entity decorator.`);
         }
-        return metadata.primaryColumns;
+
+        // Collect inherited primary columns from prototype chain
+        const allPrimaryColumns: ColumnMetadata[] = [...metadata.primaryColumns];
+        this.collectInheritedPrimaryColumns(target, allPrimaryColumns);
+
+        return allPrimaryColumns;
+    }
+
+    private collectInheritedPrimaryColumns(target: EntityConstructor, allPrimaryColumns: ColumnMetadata[]): void {
+        // Walk up the prototype chain to collect inherited primary columns
+        let currentTarget = Object.getPrototypeOf(target);
+        const existingPropertyNames = new Set(allPrimaryColumns.map((col) => col.propertyName));
+
+        while (currentTarget && currentTarget !== Function.prototype && currentTarget.name) {
+            const parentMetadata = this.getEntityMetadata(currentTarget);
+            if (parentMetadata) {
+                // Add inherited primary columns (current class columns take precedence)
+                for (const columnMetadata of parentMetadata.primaryColumns) {
+                    if (!existingPropertyNames.has(columnMetadata.propertyName)) {
+                        allPrimaryColumns.push(columnMetadata);
+                        existingPropertyNames.add(columnMetadata.propertyName);
+                    }
+                }
+            }
+            currentTarget = Object.getPrototypeOf(currentTarget);
+        }
     }
 
     addIndex(target: EntityConstructor, indexMetadata: IndexMetadata): void {
