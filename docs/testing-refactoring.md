@@ -65,19 +65,17 @@ await dataSource.runMigrations(); // Fails with: CREATE TABLE IF NOT EXISTS "cus
 ### Phase 1: MetadataContainer Isolation ✅ (Issue #44)
 
 **Implementation:**
-1. Add `clear()` method to MetadataContainer for test isolation
-2. Create test utility to safely reset global state
-3. Update test helpers to use proper cleanup patterns
+1. Add `clear()` method to MetadataContainer for test isolation ✅
+2. Create test utility to safely reset global state ✅
+3. Update test helpers to use proper cleanup patterns ✅
+4. **NEW:** Establish inline entity definition patterns for CI compatibility ✅
 
 **Code Changes:**
 ```typescript
 // In MetadataContainer class
 clear(): void {
     this.entities.clear();
-    this.tableNames.clear();
-    this.columns.clear();
-    this.primaryColumns.clear();
-    this.indexes.clear();
+    this.globalIndexNames.clear(); // Updated field name
 }
 
 // In test helpers
@@ -85,6 +83,47 @@ export function resetGlobalMetadata(): void {
     const container = getGlobalMetadataContainer();
     container.clear();
 }
+```
+
+**Critical Discovery: CI Environment Metadata Pollution**
+
+During Issue #51 investigation, we discovered that tests using imported entities from shared mock files can cause metadata pollution in CI environments that doesn't occur locally. This led to 20 test failures in the Coverage job.
+
+**Root Cause:**
+- CI environments may have different module loading orders
+- Global metadata state is shared between test files in unpredictable ways
+- Imported entities are registered at module import time, affecting other tests
+
+**Solution Implemented:**
+- Refactored all unit tests to use **inline entity definitions** within test functions
+- Added mandatory `resetGlobalMetadata()` calls in beforeEach/afterEach hooks
+- Established clear patterns for when to use inline vs imported entities
+
+**New Testing Guidelines:**
+```typescript
+// CORRECT: Inline entities for unit tests
+describe('Decorator Tests', () => {
+    beforeEach(() => {
+        resetGlobalMetadata();
+        metadataContainer = getGlobalMetadataContainer();
+    });
+
+    afterEach(() => {
+        resetGlobalMetadata();
+    });
+
+    test('should register entity', () => {
+        @Entity('test_entity')
+        class TestEntity extends BaseEntity {
+            @PrimaryGeneratedColumn('int')
+            id!: number;
+        }
+        // Test implementation
+    });
+});
+
+// AVOID: Imported entities in unit tests (causes CI failures)
+import { TestEntity } from '../helpers/mock-entities'; // ❌ Don't do this
 ```
 
 ### Phase 2: Consolidate Test Entities
@@ -211,11 +250,14 @@ describe('FeatureIntegration', () => {
 
 ## Implementation Strategy
 
-### Step 1: Fix Issue #44 (High Priority)
-- [ ] Implement MetadataContainer.clear() method
-- [ ] Create resetGlobalMetadata() utility
-- [ ] Update test helpers to use proper cleanup
-- [ ] Test isolation verification
+### Step 1: Fix Issue #44 (High Priority) ✅ COMPLETED
+- [x] Implement MetadataContainer.clear() method
+- [x] Create resetGlobalMetadata() utility
+- [x] Update test helpers to use proper cleanup
+- [x] Test isolation verification
+- [x] **NEW:** Resolve CI metadata pollution issues (Issue #51 discovery)
+- [x] **NEW:** Establish inline entity patterns for unit tests
+- [x] **NEW:** Update testing documentation with CI compatibility guidelines
 
 ### Step 2: Entity Consolidation (Medium Priority)
 - [ ] Enhance mock-entities.ts with comprehensive entity set
