@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 import { SqlGenerator } from '../../../src/sql/sql-generator';
-import type { ColumnMetadata, EntityMetadata } from '../../../src/types';
+import type { ColumnMetadata } from '../../../src/types';
+import { createMockEntityMetadata } from '../../helpers/mock-infrastructure';
 
 describe('SqlGenerator', () => {
     let sqlGenerator: SqlGenerator;
@@ -11,8 +12,7 @@ describe('SqlGenerator', () => {
 
     describe('generateCreateTable', () => {
         test('should generate CREATE TABLE for simple entity', () => {
-            const entityMetadata: EntityMetadata = {
-                target: class TestEntity {},
+            const entityMetadata = createMockEntityMetadata({
                 tableName: 'test_entity',
                 columns: new Map([
                     [
@@ -39,9 +39,7 @@ describe('SqlGenerator', () => {
                         },
                     ],
                 ]),
-                primaryColumns: [],
-                indexes: [],
-            };
+            });
 
             const sql = sqlGenerator.generateCreateTable(entityMetadata);
 
@@ -51,8 +49,7 @@ describe('SqlGenerator', () => {
         });
 
         test('should generate CREATE TABLE with various column types', () => {
-            const entityMetadata: EntityMetadata = {
-                target: class TestEntity {},
+            const entityMetadata = createMockEntityMetadata({
                 tableName: 'complex_entity',
                 columns: new Map([
                     [
@@ -101,9 +98,7 @@ describe('SqlGenerator', () => {
                         },
                     ],
                 ]),
-                primaryColumns: [],
-                indexes: [],
-            };
+            });
 
             const sql = sqlGenerator.generateCreateTable(entityMetadata);
 
@@ -113,8 +108,7 @@ describe('SqlGenerator', () => {
         });
 
         test('should handle string defaults with proper escaping', () => {
-            const entityMetadata: EntityMetadata = {
-                target: class TestEntity {},
+            const entityMetadata = createMockEntityMetadata({
                 tableName: 'test_entity',
                 columns: new Map([
                     [
@@ -154,9 +148,7 @@ describe('SqlGenerator', () => {
                         },
                     ],
                 ]),
-                primaryColumns: [],
-                indexes: [],
-            };
+            });
 
             const sql = sqlGenerator.generateCreateTable(entityMetadata);
 
@@ -166,8 +158,7 @@ describe('SqlGenerator', () => {
         });
 
         test('should handle boolean defaults', () => {
-            const entityMetadata: EntityMetadata = {
-                target: class TestEntity {},
+            const entityMetadata = createMockEntityMetadata({
                 tableName: 'test_entity',
                 columns: new Map([
                     [
@@ -207,9 +198,7 @@ describe('SqlGenerator', () => {
                         },
                     ],
                 ]),
-                primaryColumns: [],
-                indexes: [],
-            };
+            });
 
             const sql = sqlGenerator.generateCreateTable(entityMetadata);
 
@@ -364,8 +353,7 @@ describe('SqlGenerator', () => {
 
     describe('formatDefaultValue (private method testing)', () => {
         test('should format string values with quote escaping', () => {
-            const entityMetadata: EntityMetadata = {
-                target: class TestEntity {},
+            const entityMetadata = createMockEntityMetadata({
                 tableName: 'test_entity',
                 columns: new Map([
                     [
@@ -393,9 +381,7 @@ describe('SqlGenerator', () => {
                         },
                     ],
                 ]),
-                primaryColumns: [],
-                indexes: [],
-            };
+            });
 
             const sql = sqlGenerator.generateCreateTable(entityMetadata);
 
@@ -403,8 +389,7 @@ describe('SqlGenerator', () => {
         });
 
         test('should format numeric values', () => {
-            const entityMetadata: EntityMetadata = {
-                target: class TestEntity {},
+            const entityMetadata = createMockEntityMetadata({
                 tableName: 'test_entity',
                 columns: new Map([
                     [
@@ -444,9 +429,7 @@ describe('SqlGenerator', () => {
                         },
                     ],
                 ]),
-                primaryColumns: [],
-                indexes: [],
-            };
+            });
 
             const sql = sqlGenerator.generateCreateTable(entityMetadata);
 

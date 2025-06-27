@@ -18,10 +18,10 @@ export function PrimaryGeneratedColumn(strategy: PrimaryGeneratedColumnType = 'i
 
         const entityConstructor = target.constructor as new () => unknown;
 
-        // Auto-register entity if not already registered
+        // Auto-register entity if not already registered (will be marked as non-explicit)
         if (!metadataContainer.hasEntity(entityConstructor)) {
             const tableName = entityConstructor.name.toLowerCase();
-            metadataContainer.addEntity(entityConstructor, tableName);
+            metadataContainer.addEntity(entityConstructor, tableName, false);
         }
 
         metadataContainer.addColumn(entityConstructor, propertyKey, columnMetadata);

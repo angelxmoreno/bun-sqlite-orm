@@ -121,7 +121,7 @@ export class DataSource {
     private async createTables(): Promise<void> {
         const metadataContainer = this.getMetadataContainer();
         const sqlGenerator = this.typeBunContainer.resolve<SqlGenerator>('SqlGenerator');
-        const entities = metadataContainer.getAllEntities();
+        const entities = metadataContainer.getExplicitEntities(); // Only use entities with @Entity decorator
         const logger = this.typeBunContainer.resolve<DbLogger>('DbLogger');
 
         for (const entity of entities) {

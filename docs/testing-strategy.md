@@ -106,6 +106,92 @@ it("should throw DatabaseError on unique constraint violation", async () => {
 
 ## Test Organization
 
+### Entity Definition Strategy for Tests
+
+**Critical: CI Environment Compatibility**
+
+When writing tests that define entities, choose between these patterns based on test isolation requirements:
+
+#### Option 1: Inline Entity Definitions (Recommended for Unit Tests)
+```typescript
+describe('Decorator Tests', () => {
+    beforeEach(() => {
+        resetGlobalMetadata();
+        metadataContainer = getGlobalMetadataContainer();
+    });
+
+    afterEach(() => {
+        resetGlobalMetadata();
+    });
+
+    test('should register entity correctly', () => {
+        // Define entity inline within the test
+        @Entity('test_entity')
+        class TestEntity extends BaseEntity {
+            @PrimaryGeneratedColumn('int')
+            id!: number;
+
+            @Column()
+            name!: string;
+        }
+
+        expect(metadataContainer.hasEntity(TestEntity as EntityConstructor)).toBe(true);
+    });
+});
+```
+
+#### Option 2: Shared Entity Imports (Use with Caution)
+```typescript
+// Only use for integration tests where entities are explicitly isolated
+import { TestUser, TestPost } from '../helpers/mock-entities';
+
+describe('Integration Tests', () => {
+    let testDS: TestDataSourceResult;
+    
+    beforeAll(async () => {
+        testDS = await createTestDataSource({
+            entities: [TestUser, TestPost], // Explicit entity list
+        });
+    });
+    
+    afterAll(async () => {
+        await testDS.cleanup();
+    });
+});
+```
+
+#### When to Use Each Pattern:
+
+**Use Inline Definitions When:**
+- Writing unit tests for decorators, metadata, or core framework functionality
+- Testing entity registration logic
+- Need guaranteed test isolation in CI environments
+- Testing edge cases with problematic entity configurations
+
+**Use Shared Imports When:**
+- Writing integration tests with real database operations
+- Need consistent entity schemas across multiple test files
+- Testing relationships between well-defined entities
+- Entities are explicitly passed to isolated DataSource instances
+
+#### CI Environment Considerations:
+
+**Problem:** In CI environments, global metadata state can be shared between test files in unexpected ways, causing tests that pass locally to fail in CI.
+
+**Solution:** Always use `resetGlobalMetadata()` in beforeEach/afterEach hooks when defining entities inline, and prefer inline definitions for unit tests to guarantee isolation.
+
+```typescript
+// Required pattern for tests with inline entities
+beforeEach(() => {
+    resetGlobalMetadata();
+    metadataContainer = getGlobalMetadataContainer();
+});
+
+afterEach(() => {
+    resetGlobalMetadata();
+});
+```
+
 ### Test Structure
 ```
 tests/

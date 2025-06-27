@@ -116,22 +116,26 @@ export class CustomOptionsEntity extends BaseEntity {
     count!: number;
 }
 
-// Entities for auto-registration testing
+// Entities for auto-registration testing (now require explicit @Entity decorator)
+@Entity('auto_registered_entity')
 export class AutoRegisteredEntity extends BaseEntity {
     @Column()
     name!: string;
 }
 
+@Entity('auto_entity1')
 export class AutoEntity1 extends BaseEntity {
     @Column()
     prop!: string;
 }
 
+@Entity('auto_entity2')
 export class AutoEntity2 extends BaseEntity {
     @PrimaryColumn()
     id!: string;
 }
 
+@Entity('auto_entity3')
 export class AutoEntity3 extends BaseEntity {
     @PrimaryGeneratedColumn()
     id!: number;

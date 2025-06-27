@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 import { SqlGenerator } from '../../../src/sql';
-import type { ColumnMetadata, EntityMetadata } from '../../../src/types';
+import type { ColumnMetadata } from '../../../src/types';
+import { createMockEntityMetadata } from '../../helpers/mock-infrastructure';
 
 describe('SqlGenerator Composite Primary Keys', () => {
     let sqlGenerator: SqlGenerator;
@@ -11,8 +12,7 @@ describe('SqlGenerator Composite Primary Keys', () => {
 
     describe('generateCreateTable', () => {
         test('should generate correct SQL for single primary key', () => {
-            const mockEntity: EntityMetadata = {
-                target: class TestEntity {},
+            const mockEntity = createMockEntityMetadata({
                 tableName: 'test_single',
                 columns: new Map([
                     [
@@ -38,9 +38,7 @@ describe('SqlGenerator Composite Primary Keys', () => {
                         } as ColumnMetadata,
                     ],
                 ]),
-                primaryColumns: [],
-                indexes: [],
-            };
+            });
 
             const sql = sqlGenerator.generateCreateTable(mockEntity);
 
@@ -50,8 +48,7 @@ describe('SqlGenerator Composite Primary Keys', () => {
         });
 
         test('should generate correct SQL for single auto-increment primary key', () => {
-            const mockEntity: EntityMetadata = {
-                target: class TestEntity {},
+            const mockEntity = createMockEntityMetadata({
                 tableName: 'test_auto',
                 columns: new Map([
                     [
@@ -78,9 +75,7 @@ describe('SqlGenerator Composite Primary Keys', () => {
                         } as ColumnMetadata,
                     ],
                 ]),
-                primaryColumns: [],
-                indexes: [],
-            };
+            });
 
             const sql = sqlGenerator.generateCreateTable(mockEntity);
 
@@ -90,8 +85,7 @@ describe('SqlGenerator Composite Primary Keys', () => {
         });
 
         test('should generate correct SQL for composite primary key', () => {
-            const mockEntity: EntityMetadata = {
-                target: class TestEntity {},
+            const mockEntity = createMockEntityMetadata({
                 tableName: 'test_composite',
                 columns: new Map([
                     [
@@ -128,9 +122,7 @@ describe('SqlGenerator Composite Primary Keys', () => {
                         } as ColumnMetadata,
                     ],
                 ]),
-                primaryColumns: [],
-                indexes: [],
-            };
+            });
 
             const sql = sqlGenerator.generateCreateTable(mockEntity);
 
@@ -140,8 +132,7 @@ describe('SqlGenerator Composite Primary Keys', () => {
         });
 
         test('should generate correct SQL for three-column composite primary key', () => {
-            const mockEntity: EntityMetadata = {
-                target: class TestEntity {},
+            const mockEntity = createMockEntityMetadata({
                 tableName: 'test_triple',
                 columns: new Map([
                     [
@@ -189,9 +180,7 @@ describe('SqlGenerator Composite Primary Keys', () => {
                         } as ColumnMetadata,
                     ],
                 ]),
-                primaryColumns: [],
-                indexes: [],
-            };
+            });
 
             const sql = sqlGenerator.generateCreateTable(mockEntity);
 
@@ -201,8 +190,7 @@ describe('SqlGenerator Composite Primary Keys', () => {
         });
 
         test('should handle composite primary key with nullable and unique columns', () => {
-            const mockEntity: EntityMetadata = {
-                target: class TestEntity {},
+            const mockEntity = createMockEntityMetadata({
                 tableName: 'test_mixed',
                 columns: new Map([
                     [
@@ -250,9 +238,7 @@ describe('SqlGenerator Composite Primary Keys', () => {
                         } as ColumnMetadata,
                     ],
                 ]),
-                primaryColumns: [],
-                indexes: [],
-            };
+            });
 
             const sql = sqlGenerator.generateCreateTable(mockEntity);
 
@@ -262,8 +248,7 @@ describe('SqlGenerator Composite Primary Keys', () => {
         });
 
         test('should handle composite primary key with defaults', () => {
-            const mockEntity: EntityMetadata = {
-                target: class TestEntity {},
+            const mockEntity = createMockEntityMetadata({
                 tableName: 'test_defaults',
                 columns: new Map([
                     [
@@ -313,9 +298,7 @@ describe('SqlGenerator Composite Primary Keys', () => {
                         } as ColumnMetadata,
                     ],
                 ]),
-                primaryColumns: [],
-                indexes: [],
-            };
+            });
 
             const sql = sqlGenerator.generateCreateTable(mockEntity);
 
@@ -325,8 +308,7 @@ describe('SqlGenerator Composite Primary Keys', () => {
         });
 
         test('should not apply column-level PRIMARY KEY when multiple primary keys exist', () => {
-            const mockEntity: EntityMetadata = {
-                target: class TestEntity {},
+            const mockEntity = createMockEntityMetadata({
                 tableName: 'test_no_column_pk',
                 columns: new Map([
                     [
@@ -353,9 +335,7 @@ describe('SqlGenerator Composite Primary Keys', () => {
                         } as ColumnMetadata,
                     ],
                 ]),
-                primaryColumns: [],
-                indexes: [],
-            };
+            });
 
             const sql = sqlGenerator.generateCreateTable(mockEntity);
 
@@ -372,8 +352,7 @@ describe('SqlGenerator Composite Primary Keys', () => {
     describe('SQL Syntax Validation', () => {
         test('generated SQL should be valid SQLite syntax', () => {
             // Test that our generated SQL doesn't have obvious syntax errors
-            const mockEntity: EntityMetadata = {
-                target: class TestEntity {},
+            const mockEntity = createMockEntityMetadata({
                 tableName: 'syntax_test',
                 columns: new Map([
                     [
@@ -399,9 +378,7 @@ describe('SqlGenerator Composite Primary Keys', () => {
                         } as ColumnMetadata,
                     ],
                 ]),
-                primaryColumns: [],
-                indexes: [],
-            };
+            });
 
             const sql = sqlGenerator.generateCreateTable(mockEntity);
 

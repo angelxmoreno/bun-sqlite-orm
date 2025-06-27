@@ -67,16 +67,7 @@ export function mockMetadataContainer(): MockMetadataContainer {
         getColumns: mock(() => new Map<string, ColumnMetadata>()),
         getPrimaryColumns: mock(() => []),
         getIndexes: mock(() => []),
-        getEntityMetadata: mock(
-            () =>
-                ({
-                    target: class TestEntity {},
-                    tableName: 'test_table',
-                    columns: new Map(),
-                    primaryColumns: [],
-                    indexes: [],
-                }) as EntityMetadata
-        ),
+        getEntityMetadata: mock(() => createMockEntityMetadata()),
         addEntity: mock(),
         addColumn: mock(),
         addIndex: mock(),
@@ -178,6 +169,22 @@ export function createMockIndexMetadata(overrides: Partial<IndexMetadata> = {}):
         name: 'idx_test',
         columns: ['testColumn'],
         unique: false,
+        ...overrides,
+    };
+}
+
+/**
+ * Creates mock EntityMetadata for testing with sensible defaults.
+ * Reduces boilerplate in test files by providing consistent mock structure.
+ */
+export function createMockEntityMetadata(overrides: Partial<EntityMetadata> = {}): EntityMetadata {
+    return {
+        target: class TestEntity {},
+        tableName: 'test_table',
+        columns: new Map(),
+        primaryColumns: [],
+        indexes: [],
+        isExplicitlyRegistered: false,
         ...overrides,
     };
 }
