@@ -4,70 +4,73 @@ import { Column, Entity, PrimaryColumn, PrimaryGeneratedColumn } from '../../../
 import { BaseEntity } from '../../../src/entity';
 import type { MetadataContainer } from '../../../src/metadata';
 import type { EntityConstructor } from '../../../src/types';
-import { UserRoleEntity } from '../../helpers/composite-entities';
-import {
-    AllColumnTypesEntity,
-    AutoEntity1,
-    AutoEntity2,
-    AutoEntity3,
-    AutoRegisteredEntity,
-    ComplexEntity,
-    CustomOptionsEntity,
-    DecoratorTestEntity,
-    ExplicitEntity,
-    IntPrimaryKeyEntity,
-    SimpleTestEntity,
-    StringPrimaryKeyEntity,
-    TypeInferenceEntity,
-    UuidPrimaryKeyEntity,
-} from '../../helpers/mock-entities';
 import { resetGlobalMetadata } from '../../helpers/test-utils';
 
 describe('Decorators', () => {
     let metadataContainer: MetadataContainer;
 
     beforeEach(() => {
-        // Get a fresh instance for each test
+        resetGlobalMetadata();
         metadataContainer = getGlobalMetadataContainer();
-        // Note: We don't clear the container here because class decorators
-        // run at definition time and would be lost
     });
 
     afterEach(() => {
-        // Note: We don't reset global metadata here because shared mock entities
-        // from mock-entities.ts should remain registered throughout the test suite.
-        // The 'Shared Mock Entities Integration' tests rely on these being available.
-        // Only inline test entities defined in individual tests need cleanup,
-        // which happens naturally when test scope ends.
+        resetGlobalMetadata();
     });
 
     describe('@Entity Decorator', () => {
         test('should register entity with custom table name', () => {
-            // Using shared DecoratorTestEntity which has table name 'decorator_test_entity'
-            expect(metadataContainer.hasEntity(DecoratorTestEntity as EntityConstructor)).toBe(true);
-            const tableName = metadataContainer.getTableName(DecoratorTestEntity as EntityConstructor);
+            @Entity('decorator_test_entity')
+            class TestDecoratorEntity extends BaseEntity {
+                @PrimaryGeneratedColumn('int')
+                id!: number;
+            }
+
+            expect(metadataContainer.hasEntity(TestDecoratorEntity as EntityConstructor)).toBe(true);
+            const tableName = metadataContainer.getTableName(TestDecoratorEntity as EntityConstructor);
             expect(tableName).toBe('decorator_test_entity');
         });
 
         test('should register entity with inferred table name', () => {
-            // Using shared SimpleTestEntity which has table name 'test_simple'
-            expect(metadataContainer.hasEntity(SimpleTestEntity as EntityConstructor)).toBe(true);
-            const tableName = metadataContainer.getTableName(SimpleTestEntity as EntityConstructor);
+            @Entity('test_simple')
+            class TestSimpleEntity extends BaseEntity {
+                @PrimaryColumn()
+                id!: number;
+
+                @Column()
+                name!: string;
+            }
+
+            expect(metadataContainer.hasEntity(TestSimpleEntity as EntityConstructor)).toBe(true);
+            const tableName = metadataContainer.getTableName(TestSimpleEntity as EntityConstructor);
             expect(tableName).toBe('test_simple');
         });
 
         test('should register entity with explicit @Entity decorator', () => {
-            // Using shared AutoRegisteredEntity which now has explicit @Entity decorator
-            expect(metadataContainer.hasEntity(AutoRegisteredEntity as EntityConstructor)).toBe(true);
-            const tableName = metadataContainer.getTableName(AutoRegisteredEntity as EntityConstructor);
+            @Entity('auto_registered_entity')
+            class TestAutoRegisteredEntity extends BaseEntity {
+                @Column()
+                name!: string;
+            }
+
+            expect(metadataContainer.hasEntity(TestAutoRegisteredEntity as EntityConstructor)).toBe(true);
+            const tableName = metadataContainer.getTableName(TestAutoRegisteredEntity as EntityConstructor);
             expect(tableName).toBe('auto_registered_entity');
         });
     });
 
     describe('@Column Decorator', () => {
         test('should register basic column', () => {
-            // Using shared SimpleTestEntity
-            const columns = metadataContainer.getColumns(SimpleTestEntity as EntityConstructor);
+            @Entity('test_simple_column')
+            class TestSimpleColumnEntity extends BaseEntity {
+                @PrimaryColumn()
+                id!: number;
+
+                @Column()
+                name!: string;
+            }
+
+            const columns = metadataContainer.getColumns(TestSimpleColumnEntity as EntityConstructor);
             expect(columns.has('name')).toBe(true);
 
             const columnMeta = columns.get('name');
@@ -81,8 +84,16 @@ describe('Decorators', () => {
         });
 
         test('should register column with custom options', () => {
-            // Using shared CustomOptionsEntity
-            const columns = metadataContainer.getColumns(CustomOptionsEntity as EntityConstructor);
+            @Entity('test_custom_options')
+            class TestCustomOptionsEntity extends BaseEntity {
+                @PrimaryColumn()
+                id!: number;
+
+                @Column({ type: 'integer', nullable: true, unique: true, default: 42 })
+                count!: number;
+            }
+
+            const columns = metadataContainer.getColumns(TestCustomOptionsEntity as EntityConstructor);
             const columnMeta = columns.get('count');
 
             expect(columnMeta).toBeDefined();
@@ -93,8 +104,22 @@ describe('Decorators', () => {
         });
 
         test('should infer type from TypeScript type', () => {
-            // Using shared TypeInferenceEntity
-            const columns = metadataContainer.getColumns(TypeInferenceEntity as EntityConstructor);
+            @Entity('test_type_inference')
+            class TestTypeInferenceEntity extends BaseEntity {
+                @Column()
+                stringProp!: string;
+
+                @Column()
+                numberProp!: number;
+
+                @Column()
+                dateProp!: Date;
+
+                @Column()
+                booleanProp!: boolean;
+            }
+
+            const columns = metadataContainer.getColumns(TestTypeInferenceEntity as EntityConstructor);
 
             expect(columns.get('stringProp')?.type).toBe('text');
             expect(columns.get('numberProp')?.type).toBe('integer');
@@ -103,17 +128,30 @@ describe('Decorators', () => {
         });
 
         test('should override TypeScript type with explicit type', () => {
-            // Using shared AllColumnTypesEntity which has realColumn with explicit 'real' type
-            const columns = metadataContainer.getColumns(AllColumnTypesEntity as EntityConstructor);
+            @Entity('test_type_override')
+            class TestTypeOverrideEntity extends BaseEntity {
+                @Column({ type: 'real' })
+                realColumn!: number;
+            }
+
+            const columns = metadataContainer.getColumns(TestTypeOverrideEntity as EntityConstructor);
             expect(columns.get('realColumn')?.type).toBe('real');
         });
     });
 
     describe('@PrimaryColumn Decorator', () => {
         test('should register primary column', () => {
-            // Using shared SimpleTestEntity which has a @PrimaryColumn() id
-            const columns = metadataContainer.getColumns(SimpleTestEntity as EntityConstructor);
-            const primaryColumns = metadataContainer.getPrimaryColumns(SimpleTestEntity as EntityConstructor);
+            @Entity('test_primary_column')
+            class TestPrimaryColumnEntity extends BaseEntity {
+                @PrimaryColumn()
+                id!: number;
+
+                @Column()
+                name!: string;
+            }
+
+            const columns = metadataContainer.getColumns(TestPrimaryColumnEntity as EntityConstructor);
+            const primaryColumns = metadataContainer.getPrimaryColumns(TestPrimaryColumnEntity as EntityConstructor);
 
             expect(columns.has('id')).toBe(true);
             expect(primaryColumns).toHaveLength(1);
@@ -126,9 +164,20 @@ describe('Decorators', () => {
         });
 
         test('should infer primary column type', () => {
-            // Using shared StringPrimaryKeyEntity (text) and IntPrimaryKeyEntity (integer)
-            const stringColumns = metadataContainer.getColumns(StringPrimaryKeyEntity as EntityConstructor);
-            const intColumns = metadataContainer.getColumns(IntPrimaryKeyEntity as EntityConstructor);
+            @Entity('test_string_primary')
+            class TestStringPrimaryEntity extends BaseEntity {
+                @PrimaryColumn()
+                code!: string;
+            }
+
+            @Entity('test_int_primary')
+            class TestIntPrimaryEntity extends BaseEntity {
+                @PrimaryColumn()
+                id!: number;
+            }
+
+            const stringColumns = metadataContainer.getColumns(TestStringPrimaryEntity as EntityConstructor);
+            const intColumns = metadataContainer.getColumns(TestIntPrimaryEntity as EntityConstructor);
 
             expect(stringColumns.get('code')?.type).toBe('text');
             expect(intColumns.get('id')?.type).toBe('integer');
@@ -137,9 +186,17 @@ describe('Decorators', () => {
 
     describe('@PrimaryGeneratedColumn Decorator', () => {
         test('should register auto-increment primary column', () => {
-            // Using shared IntPrimaryKeyEntity
-            const columns = metadataContainer.getColumns(IntPrimaryKeyEntity as EntityConstructor);
-            const primaryColumns = metadataContainer.getPrimaryColumns(IntPrimaryKeyEntity as EntityConstructor);
+            @Entity('test_auto_increment')
+            class TestAutoIncrementEntity extends BaseEntity {
+                @PrimaryGeneratedColumn('int')
+                id!: number;
+
+                @Column()
+                name!: string;
+            }
+
+            const columns = metadataContainer.getColumns(TestAutoIncrementEntity as EntityConstructor);
+            const primaryColumns = metadataContainer.getPrimaryColumns(TestAutoIncrementEntity as EntityConstructor);
 
             expect(columns.has('id')).toBe(true);
             expect(primaryColumns).toHaveLength(1);
@@ -152,8 +209,16 @@ describe('Decorators', () => {
         });
 
         test('should register UUID primary column', () => {
-            // Using shared UuidPrimaryKeyEntity
-            const columns = metadataContainer.getColumns(UuidPrimaryKeyEntity as EntityConstructor);
+            @Entity('test_uuid_primary')
+            class TestUuidPrimaryEntity extends BaseEntity {
+                @PrimaryGeneratedColumn('uuid')
+                id!: string;
+
+                @Column()
+                name!: string;
+            }
+
+            const columns = metadataContainer.getColumns(TestUuidPrimaryEntity as EntityConstructor);
             const columnMeta = columns.get('id');
 
             expect(columnMeta?.isPrimary).toBe(true);
@@ -163,8 +228,16 @@ describe('Decorators', () => {
         });
 
         test('should default to int strategy', () => {
-            // Using shared IntPrimaryKeyEntity which uses default @PrimaryGeneratedColumn()
-            const columns = metadataContainer.getColumns(IntPrimaryKeyEntity as EntityConstructor);
+            @Entity('test_default_strategy')
+            class TestDefaultStrategyEntity extends BaseEntity {
+                @PrimaryGeneratedColumn()
+                id!: number;
+
+                @Column()
+                name!: string;
+            }
+
+            const columns = metadataContainer.getColumns(TestDefaultStrategyEntity as EntityConstructor);
             const columnMeta = columns.get('id');
 
             expect(columnMeta?.generationStrategy).toBe('increment');
@@ -174,13 +247,30 @@ describe('Decorators', () => {
 
     describe('Combined Decorators', () => {
         test('should handle entity with mixed column types', () => {
-            // Using shared ComplexEntity
-            const columns = metadataContainer.getColumns(ComplexEntity as EntityConstructor);
-            const primaryColumns = metadataContainer.getPrimaryColumns(ComplexEntity as EntityConstructor);
+            @Entity('test_complex_entity')
+            class TestComplexEntity extends BaseEntity {
+                @PrimaryGeneratedColumn('int')
+                id!: number;
+
+                @Column({ unique: true, nullable: false })
+                email!: string;
+
+                @Column({ nullable: true })
+                name?: string;
+
+                @Column({ type: 'real', default: 0.0 })
+                score!: number;
+
+                @Column({ type: 'integer', default: () => Date.now() })
+                timestamp!: number;
+            }
+
+            const columns = metadataContainer.getColumns(TestComplexEntity as EntityConstructor);
+            const primaryColumns = metadataContainer.getPrimaryColumns(TestComplexEntity as EntityConstructor);
 
             // Verify entity registration
-            expect(metadataContainer.hasEntity(ComplexEntity as EntityConstructor)).toBe(true);
-            expect(metadataContainer.getTableName(ComplexEntity as EntityConstructor)).toBe('complex_entity');
+            expect(metadataContainer.hasEntity(TestComplexEntity as EntityConstructor)).toBe(true);
+            expect(metadataContainer.getTableName(TestComplexEntity as EntityConstructor)).toBe('test_complex_entity');
 
             // Verify column count
             expect(columns.size).toBe(5);
@@ -211,45 +301,87 @@ describe('Decorators', () => {
         });
 
         test('should handle multiple primary keys', () => {
-            // Using shared UserRoleEntity which has composite primary keys
-            const primaryColumns = metadataContainer.getPrimaryColumns(UserRoleEntity as EntityConstructor);
+            @Entity('test_user_role')
+            class TestUserRoleEntity extends BaseEntity {
+                @PrimaryColumn()
+                userId!: number;
+
+                @PrimaryColumn()
+                roleId!: number;
+
+                @Column()
+                createdAt!: Date;
+            }
+
+            const primaryColumns = metadataContainer.getPrimaryColumns(TestUserRoleEntity as EntityConstructor);
 
             expect(primaryColumns).toHaveLength(2);
             const primaryKeys = primaryColumns.map((col: { propertyName: string }) => col.propertyName);
             expect(primaryKeys).toContain('userId');
             expect(primaryKeys).toContain('roleId');
         });
-
-        // Note: Composite primary key test removed - entities moved to prevent conflicts
     });
 
     describe('Entity Registration', () => {
         test('should register entities with explicit @Entity decorators', () => {
-            // Using shared entities that now have explicit @Entity decorators
+            @Entity('auto_entity1')
+            class TestAutoEntity1 extends BaseEntity {
+                @Column()
+                name!: string;
+            }
+
+            @Entity('auto_entity2')
+            class TestAutoEntity2 extends BaseEntity {
+                @Column()
+                value!: number;
+            }
+
+            @Entity('auto_entity3')
+            class TestAutoEntity3 extends BaseEntity {
+                @Column()
+                data!: string;
+            }
+
             // All should be explicitly registered
-            expect(metadataContainer.hasEntity(AutoEntity1 as EntityConstructor)).toBe(true);
-            expect(metadataContainer.hasEntity(AutoEntity2 as EntityConstructor)).toBe(true);
-            expect(metadataContainer.hasEntity(AutoEntity3 as EntityConstructor)).toBe(true);
+            expect(metadataContainer.hasEntity(TestAutoEntity1 as EntityConstructor)).toBe(true);
+            expect(metadataContainer.hasEntity(TestAutoEntity2 as EntityConstructor)).toBe(true);
+            expect(metadataContainer.hasEntity(TestAutoEntity3 as EntityConstructor)).toBe(true);
 
             // Table names should match explicit @Entity decorator names
-            expect(metadataContainer.getTableName(AutoEntity1 as EntityConstructor)).toBe('auto_entity1');
-            expect(metadataContainer.getTableName(AutoEntity2 as EntityConstructor)).toBe('auto_entity2');
-            expect(metadataContainer.getTableName(AutoEntity3 as EntityConstructor)).toBe('auto_entity3');
+            expect(metadataContainer.getTableName(TestAutoEntity1 as EntityConstructor)).toBe('auto_entity1');
+            expect(metadataContainer.getTableName(TestAutoEntity2 as EntityConstructor)).toBe('auto_entity2');
+            expect(metadataContainer.getTableName(TestAutoEntity3 as EntityConstructor)).toBe('auto_entity3');
         });
 
         test('should prefer explicit @Entity table name over auto-registration', () => {
-            // Using shared ExplicitEntity with explicit table name
-            expect(metadataContainer.getTableName(ExplicitEntity as EntityConstructor)).toBe('explicit_table');
+            @Entity('explicit_table')
+            class TestExplicitEntity extends BaseEntity {
+                @Column()
+                name!: string;
+            }
+
+            expect(metadataContainer.getTableName(TestExplicitEntity as EntityConstructor)).toBe('explicit_table');
         });
     });
 
-    describe('Shared Mock Entities Integration', () => {
-        test('should validate IntPrimaryKeyEntity decorator setup', () => {
-            expect(metadataContainer.hasEntity(IntPrimaryKeyEntity as EntityConstructor)).toBe(true);
-            expect(metadataContainer.getTableName(IntPrimaryKeyEntity as EntityConstructor)).toBe('int_pk_entity');
+    describe('Inline Entity Integration', () => {
+        test('should validate auto-increment primary key setup', () => {
+            @Entity('test_int_pk_entity')
+            class TestIntPrimaryKeyEntity extends BaseEntity {
+                @PrimaryGeneratedColumn('int')
+                id!: number;
 
-            const columns = metadataContainer.getColumns(IntPrimaryKeyEntity as EntityConstructor);
-            const primaryColumns = metadataContainer.getPrimaryColumns(IntPrimaryKeyEntity as EntityConstructor);
+                @Column()
+                name!: string;
+            }
+
+            expect(metadataContainer.hasEntity(TestIntPrimaryKeyEntity as EntityConstructor)).toBe(true);
+            expect(metadataContainer.getTableName(TestIntPrimaryKeyEntity as EntityConstructor)).toBe(
+                'test_int_pk_entity'
+            );
+
+            const columns = metadataContainer.getColumns(TestIntPrimaryKeyEntity as EntityConstructor);
+            const primaryColumns = metadataContainer.getPrimaryColumns(TestIntPrimaryKeyEntity as EntityConstructor);
 
             expect(primaryColumns).toHaveLength(1);
             expect(primaryColumns[0].propertyName).toBe('id');
@@ -257,12 +389,23 @@ describe('Decorators', () => {
             expect(columns.get('id')?.type).toBe('integer');
         });
 
-        test('should validate UuidPrimaryKeyEntity decorator setup', () => {
-            expect(metadataContainer.hasEntity(UuidPrimaryKeyEntity as EntityConstructor)).toBe(true);
-            expect(metadataContainer.getTableName(UuidPrimaryKeyEntity as EntityConstructor)).toBe('uuid_pk_entity');
+        test('should validate UUID primary key setup', () => {
+            @Entity('test_uuid_pk_entity')
+            class TestUuidPrimaryKeyEntity extends BaseEntity {
+                @PrimaryGeneratedColumn('uuid')
+                id!: string;
 
-            const columns = metadataContainer.getColumns(UuidPrimaryKeyEntity as EntityConstructor);
-            const primaryColumns = metadataContainer.getPrimaryColumns(UuidPrimaryKeyEntity as EntityConstructor);
+                @Column()
+                name!: string;
+            }
+
+            expect(metadataContainer.hasEntity(TestUuidPrimaryKeyEntity as EntityConstructor)).toBe(true);
+            expect(metadataContainer.getTableName(TestUuidPrimaryKeyEntity as EntityConstructor)).toBe(
+                'test_uuid_pk_entity'
+            );
+
+            const columns = metadataContainer.getColumns(TestUuidPrimaryKeyEntity as EntityConstructor);
+            const primaryColumns = metadataContainer.getPrimaryColumns(TestUuidPrimaryKeyEntity as EntityConstructor);
 
             expect(primaryColumns).toHaveLength(1);
             expect(primaryColumns[0].propertyName).toBe('id');
@@ -270,14 +413,23 @@ describe('Decorators', () => {
             expect(columns.get('id')?.type).toBe('text');
         });
 
-        test('should validate StringPrimaryKeyEntity decorator setup', () => {
-            expect(metadataContainer.hasEntity(StringPrimaryKeyEntity as EntityConstructor)).toBe(true);
-            expect(metadataContainer.getTableName(StringPrimaryKeyEntity as EntityConstructor)).toBe(
-                'string_pk_entity'
+        test('should validate string primary key setup', () => {
+            @Entity('test_string_pk_entity')
+            class TestStringPrimaryKeyEntity extends BaseEntity {
+                @PrimaryColumn()
+                code!: string;
+
+                @Column()
+                name!: string;
+            }
+
+            expect(metadataContainer.hasEntity(TestStringPrimaryKeyEntity as EntityConstructor)).toBe(true);
+            expect(metadataContainer.getTableName(TestStringPrimaryKeyEntity as EntityConstructor)).toBe(
+                'test_string_pk_entity'
             );
 
-            const columns = metadataContainer.getColumns(StringPrimaryKeyEntity as EntityConstructor);
-            const primaryColumns = metadataContainer.getPrimaryColumns(StringPrimaryKeyEntity as EntityConstructor);
+            const columns = metadataContainer.getColumns(TestStringPrimaryKeyEntity as EntityConstructor);
+            const primaryColumns = metadataContainer.getPrimaryColumns(TestStringPrimaryKeyEntity as EntityConstructor);
 
             expect(primaryColumns).toHaveLength(1);
             expect(primaryColumns[0].propertyName).toBe('code');
@@ -285,10 +437,34 @@ describe('Decorators', () => {
             expect(columns.get('code')?.type).toBe('text');
         });
 
-        test('should validate AllColumnTypesEntity column type inference', () => {
-            expect(metadataContainer.hasEntity(AllColumnTypesEntity as EntityConstructor)).toBe(true);
+        test('should validate all column types', () => {
+            @Entity('test_all_column_types')
+            class TestAllColumnTypesEntity extends BaseEntity {
+                @PrimaryGeneratedColumn('int')
+                id!: number;
 
-            const columns = metadataContainer.getColumns(AllColumnTypesEntity as EntityConstructor);
+                @Column()
+                textColumn!: string;
+
+                @Column()
+                integerColumn!: number;
+
+                @Column({ type: 'real' })
+                realColumn!: number;
+
+                @Column({ type: 'blob' })
+                blobColumn!: Buffer;
+
+                @Column({ nullable: true })
+                nullableText?: string;
+
+                @Column({ nullable: true })
+                nullableInteger?: number;
+            }
+
+            expect(metadataContainer.hasEntity(TestAllColumnTypesEntity as EntityConstructor)).toBe(true);
+
+            const columns = metadataContainer.getColumns(TestAllColumnTypesEntity as EntityConstructor);
 
             // Verify all column types are properly registered
             expect(columns.get('textColumn')?.type).toBe('text');
