@@ -65,11 +65,8 @@ export class Transaction {
             throw new Error('Transaction has been rolled back and cannot be committed');
         }
 
-        // Release any open savepoints first (from most recent to oldest)
-        while (this.savepointStack.length > 0) {
-            const lastSavepoint = this.savepointStack[this.savepointStack.length - 1];
-            await this.releaseSavepoint(lastSavepoint);
-        }
+        // SQLite automatically releases all savepoints during COMMIT
+        // No need to manually release them
 
         this.logger.debug('Committing transaction');
 
@@ -77,6 +74,7 @@ export class Transaction {
             this.database.exec('COMMIT TRANSACTION');
             this.isActive = false;
             this.isCommitted = true;
+            this.savepointStack.length = 0; // Clear savepoint stack since SQLite released them all
             this.logger.debug('Transaction committed successfully');
         } catch (error) {
             this.logger.error('Failed to commit transaction', error);
