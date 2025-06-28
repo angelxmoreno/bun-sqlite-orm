@@ -1,5 +1,5 @@
 /**
- * Date utilities for consistent timezone-safe date handling in TypeBunOrm
+ * Date utilities for consistent timezone-safe date handling in bun-sqlite-orm
  *
  * Addresses timezone issues by:
  * 1. Providing explicit timezone-aware date conversion
@@ -81,11 +81,11 @@ export function validateTimezoneAwareness(dateString: string): void {
         const message = `Date string "${dateString}" lacks timezone information. This may cause inconsistent behavior across timezones. Consider using ISO format with timezone: "${new Date(dateString).toISOString()}"`;
 
         if (globalDateConfig.warnOnAmbiguousTimezone) {
-            console.warn('[TypeBunOrm Date Warning]', message);
+            console.warn('[bun-sqlite-orm Date Warning]', message);
         }
 
         if (globalDateConfig.enforceUTC) {
-            throw new Error(`[TypeBunOrm] ${message}`);
+            throw new Error(`[bun-sqlite-orm] ${message}`);
         }
     }
 }
