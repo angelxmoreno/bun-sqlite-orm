@@ -3,6 +3,7 @@ import type { DbLogger } from '../types';
 import { Transaction, type TransactionOptions } from './transaction';
 
 export type TransactionCallback<T> = (transaction: Transaction) => Promise<T>;
+export type SequentialTransactionCallback<T> = (transaction: Transaction, previousResult?: unknown) => Promise<T>;
 
 /**
  * Transaction Manager handles the creation and lifecycle of database transactions.
@@ -140,14 +141,15 @@ export class TransactionManager {
      * ```
      */
     async executeSequential<T>(
-        operations: TransactionCallback<unknown>[],
+        operations: SequentialTransactionCallback<unknown>[],
         options: TransactionOptions = {}
     ): Promise<T> {
         return this.execute(async (tx) => {
             let result: unknown;
 
-            for (const operation of operations) {
-                result = await operation(tx);
+            for (let i = 0; i < operations.length; i++) {
+                const operation = operations[i];
+                result = await operation(tx, i === 0 ? undefined : result);
             }
 
             return result as T;

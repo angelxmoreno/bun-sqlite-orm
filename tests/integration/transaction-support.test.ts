@@ -262,15 +262,12 @@ describe('Transaction Support Integration Tests', () => {
                         age: 30,
                     });
                 },
-                async (tx) => {
-                    // Get the user created in previous step
-                    const users = await TxUser.find({});
-                    const user = users[0];
-
+                async (tx, user) => {
+                    // Use the user from the previous step directly
                     return TxPost.create({
                         title: 'Sequential Post',
                         content: 'This post was created after the user',
-                        userId: user.id,
+                        userId: (user as any).id,
                     });
                 },
             ]);
@@ -309,6 +306,46 @@ describe('Transaction Support Integration Tests', () => {
             // Verify nothing was committed
             const users = await TxUser.find({});
             expect(users).toHaveLength(0);
+        });
+
+        test('should pass results between sequential operations', async () => {
+            const finalResult = await testDS.dataSource.transactionSequential<{ user: any; post: any }>([
+                // Step 1: Create user
+                async (tx) => {
+                    return TxUser.create({
+                        name: 'Chain User',
+                        email: 'chain@example.com',
+                        age: 25,
+                    });
+                },
+                // Step 2: Create post using user from step 1
+                async (tx, user) => {
+                    expect(user).toBeDefined();
+                    expect((user as any).id).toBeDefined();
+
+                    return TxPost.create({
+                        title: 'Chained Post',
+                        content: 'Created using result from previous step',
+                        userId: (user as any).id,
+                    });
+                },
+                // Step 3: Return both user and post
+                async (tx, post) => {
+                    expect(post).toBeDefined();
+                    expect((post as any).userId).toBeDefined();
+
+                    // Get the user to return both
+                    const user = await TxUser.get((post as any).userId);
+                    return { user, post };
+                },
+            ]);
+
+            // Verify the chaining worked correctly
+            expect(finalResult.user).toBeDefined();
+            expect(finalResult.post).toBeDefined();
+            expect(finalResult.post.userId).toBe(finalResult.user.id);
+            expect(finalResult.post.title).toBe('Chained Post');
+            expect(finalResult.user.name).toBe('Chain User');
         });
     });
 

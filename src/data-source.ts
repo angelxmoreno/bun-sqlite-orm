@@ -5,7 +5,12 @@ import { NullLogger } from './logger';
 import { MetadataContainer } from './metadata';
 import { QueryBuilder, SqlGenerator } from './sql';
 import { StatementCache } from './statement-cache';
-import { type TransactionCallback, TransactionManager, type TransactionOptions } from './transaction';
+import {
+    type SequentialTransactionCallback,
+    type TransactionCallback,
+    TransactionManager,
+    type TransactionOptions,
+} from './transaction';
 import type { DataSourceOptions, DbLogger } from './types';
 
 export class DataSource {
@@ -232,7 +237,7 @@ export class DataSource {
      * ```
      */
     async transactionSequential<T>(
-        operations: TransactionCallback<unknown>[],
+        operations: SequentialTransactionCallback<unknown>[],
         options?: TransactionOptions
     ): Promise<T> {
         if (!this.isInitialized) {
