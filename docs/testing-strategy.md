@@ -2,7 +2,7 @@
 
 ## Overview
 
-TypeBunOrm uses **file-based testing** with real SQLite database files to ensure full integration testing, including migration execution and database operations.
+bun-sqlite-orm uses **file-based testing** with real SQLite database files to ensure full integration testing, including migration execution and database operations.
 
 ## Test Database Setup
 

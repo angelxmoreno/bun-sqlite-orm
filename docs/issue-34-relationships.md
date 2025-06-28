@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the critical prerequisites that must be completed before implementing the comprehensive relationship system (Issue #34) in TypeBunOrm. Based on analysis of the current codebase, open issues, and architectural requirements, these prerequisites ensure a robust foundation for relationship features.
+This document outlines the critical prerequisites that must be completed before implementing the comprehensive relationship system (Issue #34) in bun-sqlite-orm. Based on analysis of the current codebase, open issues, and architectural requirements, these prerequisites ensure a robust foundation for relationship features.
 
 Relationships are a major feature that will enable defining and managing associations between entities using decorators like `@OneToMany`, `@ManyToOne`, `@OneToOne`, and `@ManyToMany`.
 
@@ -346,7 +346,7 @@ Before releasing Relationships:
 
 ## Architecture Readiness Assessment
 
-The current TypeBunOrm architecture is **well-positioned** for relationships:
+The current bun-sqlite-orm architecture is **well-positioned** for relationships:
 
 ### ✅ Strengths
 - **MetadataContainer**: Already designed to store relationship metadata
@@ -373,7 +373,7 @@ The current TypeBunOrm architecture is **well-positioned** for relationships:
 
 ## Conclusion
 
-The TypeBunOrm codebase has excellent architectural foundations for implementing relationships, with recent critical fixes providing a solid base. The **multi-release strategy** ensures maximum flexibility and value delivery:
+The bun-sqlite-orm codebase has excellent architectural foundations for implementing relationships, with recent critical fixes providing a solid base. The **multi-release strategy** ensures maximum flexibility and value delivery:
 
 ### 🎯 **Strategic Approach**
 Rather than waiting for all prerequisites, we're delivering value incrementally:

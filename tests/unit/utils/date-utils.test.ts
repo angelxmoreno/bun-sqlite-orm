@@ -76,7 +76,7 @@ describe('DateUtils', () => {
 
             validateTimezoneAwareness('2024-01-01T12:00:00');
             expect(mockWarn).toHaveBeenCalledWith(
-                '[TypeBunOrm Date Warning]',
+                '[bun-sqlite-orm Date Warning]',
                 expect.stringContaining('lacks timezone information')
             );
 

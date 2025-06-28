@@ -1,7 +1,7 @@
 # Integration Test Plan
 
 ## Overview
-Integration tests validate the full TypeBunOrm stack with real SQLite databases, ensuring all components work together correctly.
+Integration tests validate the full bun-sqlite-orm stack with real SQLite databases, ensuring all components work together correctly.
 
 ## Test Categories
 

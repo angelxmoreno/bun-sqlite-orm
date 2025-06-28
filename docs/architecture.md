@@ -1,8 +1,8 @@
-# TypeBunOrm Architecture
+# bun-sqlite-orm Architecture
 
 ## Overview
 
-TypeBunOrm uses a clean, dependency injection-based architecture that keeps the user-facing API simple while maintaining flexibility and testability internally.
+bun-sqlite-orm uses a clean, dependency injection-based architecture that keeps the user-facing API simple while maintaining flexibility and testability internally.
 
 ## Core Components
 
@@ -31,7 +31,7 @@ const user = await User.create({ email: "test@example.com" });
 
 ### Dependency Injection Container
 
-Uses **tsyringe** with a **child container** to isolate TypeBunOrm services from user's container.
+Uses **tsyringe** with a **child container** to isolate bun-sqlite-orm services from user's container.
 
 ```typescript
 // DataSource creates child container internally
@@ -195,7 +195,7 @@ class StatementCache {
 
 ## Auto-Migration System
 
-TypeBunOrm uses **automatic schema synchronization** where entity decorators define the database schema, and tables are created automatically during initialization.
+bun-sqlite-orm uses **automatic schema synchronization** where entity decorators define the database schema, and tables are created automatically during initialization.
 
 ### How Auto-Migration Works
 
@@ -244,6 +244,7 @@ TypeBunOrm uses **automatic schema synchronization** where entity decorators def
 - **Clean API** - Users only see DataSource and entities
 - **Transparent DI** - All dependency injection happens internally
 - **High Performance** - Automatic statement caching provides 30-50% speed improvements
+- **ACID Transactions** - Full transaction support with automatic rollback and nested savepoints
 - **Testable** - Easy to mock database and metadata for tests
 - **Isolated** - No pollution of user's DI container
 - **Single Source of Truth** - Entity files drive everything
@@ -252,7 +253,7 @@ TypeBunOrm uses **automatic schema synchronization** where entity decorators def
 
 ## Logging System
 
-TypeBunOrm uses a flexible logging system with a **DbLogger interface** for extensibility.
+bun-sqlite-orm uses a flexible logging system with a **DbLogger interface** for extensibility.
 
 ### Logger Configuration
 ```typescript
@@ -280,6 +281,107 @@ const dataSource = new DataSource({
 - **INFO** - Entity saves, creates, major operations  
 - **WARN** - Validation errors, performance warnings, deprecation notices
 - **ERROR** - Database errors, connection failures, migration failures
+
+## Transaction System
+
+bun-sqlite-orm provides comprehensive transaction support for atomic database operations with automatic rollback on errors.
+
+### Transaction API
+
+The DataSource provides multiple transaction methods for different use cases:
+
+```typescript
+// Basic transaction with automatic commit/rollback
+const result = await dataSource.transaction(async (tx) => {
+  const user = await User.create({ name: 'John' });
+  const post = await Post.create({ title: 'Hello', userId: user.id });
+  return { user, post };
+});
+
+// Parallel operations within a transaction
+const [users, posts] = await dataSource.transactionParallel([
+  (tx) => Promise.all([
+    User.create({ name: 'Alice' }),
+    User.create({ name: 'Bob' })
+  ]),
+  (tx) => Post.create({ title: 'Shared Post' })
+]);
+
+// Sequential operations
+const result = await dataSource.transactionSequential([
+  (tx) => User.create({ name: 'John' }),
+  (tx, user) => Post.create({ title: 'Hello', userId: user.id })
+]);
+```
+
+### Transaction Features
+
+#### **Isolation Levels**
+Support for SQLite transaction isolation levels:
+```typescript
+await dataSource.transaction(async (tx) => {
+  // Transaction operations
+}, { isolation: 'IMMEDIATE' }); // DEFERRED, IMMEDIATE, or EXCLUSIVE
+```
+
+#### **Automatic Error Handling**
+- Automatic rollback on any error
+- Proper cleanup of transaction state
+- Error propagation with context
+
+#### **Nested Transactions (Savepoints)**
+```typescript
+const tx = dataSource.createTransaction();
+await tx.begin();
+
+try {
+  await User.create({ name: 'John' });
+  
+  const savepoint = await tx.savepoint('user_created');
+  
+  try {
+    await Post.create({ title: 'Test', userId: 1 });
+    await tx.releaseSavepoint(savepoint);
+  } catch (error) {
+    await tx.rollbackToSavepoint(savepoint);
+    // Handle nested error
+  }
+  
+  await tx.commit();
+} catch (error) {
+  await tx.rollback();
+}
+```
+
+### Transaction Manager Architecture
+
+The transaction system uses a **TransactionManager** that handles:
+
+- **Transaction Lifecycle** - Begin, commit, rollback operations
+- **Error Recovery** - Automatic rollback on failures  
+- **Savepoint Management** - Nested transaction support
+- **Resource Cleanup** - Proper statement and connection cleanup
+- **Logging Integration** - Detailed transaction logging
+
+### Integration with Existing Systems
+
+#### **BaseEntity Integration**
+Entities work seamlessly within transactions without code changes:
+```typescript
+await dataSource.transaction(async (tx) => {
+  const user = new User();
+  user.name = 'John';
+  await user.save(); // Uses transaction context
+  
+  const posts = await Post.find({ userId: user.id }); // Uses transaction context
+});
+```
+
+#### **Statement Cache Compatibility**
+Transactions work with the existing statement cache system for optimal performance.
+
+#### **Validation Integration**
+Entity validation errors automatically trigger transaction rollback.
 
 ## Column System
 
