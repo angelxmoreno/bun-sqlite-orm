@@ -65,9 +65,10 @@ export class Transaction {
             throw new Error('Transaction has been rolled back and cannot be committed');
         }
 
-        // Rollback any open savepoints first
+        // Release any open savepoints first (from most recent to oldest)
         while (this.savepointStack.length > 0) {
-            await this.rollbackToSavepoint();
+            const lastSavepoint = this.savepointStack[this.savepointStack.length - 1];
+            await this.releaseSavepoint(lastSavepoint);
         }
 
         this.logger.debug('Committing transaction');
@@ -159,18 +160,24 @@ export class Transaction {
             throw new Error('No savepoint to release');
         }
 
+        // Check if the savepoint exists in our stack
+        const index = this.savepointStack.indexOf(savepointName);
+        if (index === -1) {
+            throw new Error(`Savepoint ${savepointName} not found`);
+        }
+
         const sql = `RELEASE SAVEPOINT ${savepointName}`;
 
         this.logger.debug('Releasing savepoint', { savepoint: savepointName, sql });
 
         try {
             this.database.exec(sql);
-            // Remove from stack
-            const index = this.savepointStack.indexOf(savepointName);
-            if (index > -1) {
-                this.savepointStack.splice(index, 1);
-            }
-            this.logger.debug('Savepoint released successfully', { savepoint: savepointName });
+            // SQLite RELEASE removes the savepoint and all savepoints created after it
+            this.savepointStack.splice(index);
+            this.logger.debug('Savepoint released successfully', {
+                savepoint: savepointName,
+                remainingStack: this.savepointStack,
+            });
         } catch (error) {
             this.logger.error('Failed to release savepoint', { savepoint: savepointName, error });
             throw new Error(`Failed to release savepoint ${savepointName}: ${error}`);
@@ -191,18 +198,25 @@ export class Transaction {
             throw new Error('No savepoint to rollback to');
         }
 
+        // Check if the savepoint exists in our stack
+        const index = this.savepointStack.indexOf(savepointName);
+        if (index === -1) {
+            throw new Error(`Savepoint ${savepointName} not found`);
+        }
+
         const sql = `ROLLBACK TO SAVEPOINT ${savepointName}`;
 
         this.logger.debug('Rolling back to savepoint', { savepoint: savepointName, sql });
 
         try {
             this.database.exec(sql);
-            // Remove from stack - remove all savepoints after this one
-            const index = this.savepointStack.indexOf(savepointName);
-            if (index > -1) {
-                this.savepointStack.splice(index + 1);
-            }
-            this.logger.debug('Rolled back to savepoint successfully', { savepoint: savepointName });
+            // ROLLBACK TO does NOT destroy the savepoint itself, only nested ones
+            // Remove all savepoints created after this one (but keep the target savepoint)
+            this.savepointStack.splice(index + 1);
+            this.logger.debug('Rolled back to savepoint successfully', {
+                savepoint: savepointName,
+                remainingStack: this.savepointStack,
+            });
         } catch (error) {
             this.logger.error('Failed to rollback to savepoint', { savepoint: savepointName, error });
             throw new Error(`Failed to rollback to savepoint ${savepointName}: ${error}`);

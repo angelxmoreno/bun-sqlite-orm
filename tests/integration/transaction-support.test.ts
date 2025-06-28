@@ -267,7 +267,7 @@ describe('Transaction Support Integration Tests', () => {
                     return TxPost.create({
                         title: 'Sequential Post',
                         content: 'This post was created after the user',
-                        userId: (user as any).id,
+                        userId: (user as unknown as { id: number }).id,
                     });
                 },
             ]);
@@ -309,7 +309,7 @@ describe('Transaction Support Integration Tests', () => {
         });
 
         test('should pass results between sequential operations', async () => {
-            const finalResult = await testDS.dataSource.transactionSequential<{ user: any; post: any }>([
+            const finalResult = await testDS.dataSource.transactionSequential<{ user: unknown; post: unknown }>([
                 // Step 1: Create user
                 async (tx) => {
                     return TxUser.create({
@@ -321,21 +321,21 @@ describe('Transaction Support Integration Tests', () => {
                 // Step 2: Create post using user from step 1
                 async (tx, user) => {
                     expect(user).toBeDefined();
-                    expect((user as any).id).toBeDefined();
+                    expect((user as unknown as { id: number }).id).toBeDefined();
 
                     return TxPost.create({
                         title: 'Chained Post',
                         content: 'Created using result from previous step',
-                        userId: (user as any).id,
+                        userId: (user as unknown as { id: number }).id,
                     });
                 },
                 // Step 3: Return both user and post
                 async (tx, post) => {
                     expect(post).toBeDefined();
-                    expect((post as any).userId).toBeDefined();
+                    expect((post as unknown as { userId: number }).userId).toBeDefined();
 
                     // Get the user to return both
-                    const user = await TxUser.get((post as any).userId);
+                    const user = await TxUser.get((post as unknown as { userId: number }).userId);
                     return { user, post };
                 },
             ]);
@@ -343,9 +343,11 @@ describe('Transaction Support Integration Tests', () => {
             // Verify the chaining worked correctly
             expect(finalResult.user).toBeDefined();
             expect(finalResult.post).toBeDefined();
-            expect(finalResult.post.userId).toBe(finalResult.user.id);
-            expect(finalResult.post.title).toBe('Chained Post');
-            expect(finalResult.user.name).toBe('Chain User');
+            expect((finalResult.post as unknown as { userId: number }).userId).toBe(
+                (finalResult.user as unknown as { id: number }).id
+            );
+            expect((finalResult.post as unknown as { title: string }).title).toBe('Chained Post');
+            expect((finalResult.user as unknown as { name: string }).name).toBe('Chain User');
         });
     });
 
