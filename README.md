@@ -395,12 +395,13 @@ try {
 
 ```typescript
 @Column({
-    type: 'text' | 'integer' | 'real' | 'blob',  // SQLite data types
+    type: 'text' | 'integer' | 'real' | 'blob' | 'json',  // SQLite data types
     nullable?: boolean,        // Allow NULL values (default: false)
     unique?: boolean,          // Add unique constraint (default: false)
     default?: any | (() => any), // JavaScript default value or function
     sqlDefault?: string | number | boolean | null, // SQL default value or expression
-    index?: boolean | string   // Create index: true for auto-named, string for custom name
+    index?: boolean | string,  // Create index: true for auto-named, string for custom name
+    transformer?: ColumnTransformer  // Custom data transformation for save/load operations
 })
 ```
 
@@ -924,6 +925,238 @@ status!: string;
 @Column({ default: () => Math.random() })
 randomValue!: number;
 ```
+
+### JSON Columns and Data Transformers
+
+BunSQLiteORM provides powerful support for JSON data storage and custom data transformations, enabling seamless handling of complex data types while maintaining type safety.
+
+#### JSON Column Type
+
+Use the `json` column type for automatic JSON serialization and deserialization:
+
+```typescript
+@Entity('user_profiles')
+export class UserProfile extends BaseEntity {
+    @PrimaryGeneratedColumn('int')
+    id!: number;
+
+    // Explicit JSON column type
+    @Column({ type: 'json' })
+    preferences!: {
+        theme: 'light' | 'dark';
+        notifications: boolean;
+        language: string;
+    };
+
+    // Auto-inferred JSON type for objects and arrays
+    @Column()
+    metadata!: { tags: string[]; created: Date; settings: Record<string, unknown> };
+
+    @Column()
+    favoriteColors!: string[];
+
+    // Nullable JSON column
+    @Column({ type: 'json', nullable: true })
+    customData?: { [key: string]: unknown };
+}
+
+// Usage examples
+const profile = await UserProfile.create({
+    preferences: {
+        theme: 'dark',
+        notifications: true,
+        language: 'en'
+    },
+    metadata: {
+        tags: ['premium', 'verified'],
+        created: new Date(),
+        settings: { autoSave: true, maxFiles: 100 }
+    },
+    favoriteColors: ['blue', 'green', 'purple'],
+    customData: { plan: 'premium', level: 5 }
+});
+
+// JSON data is automatically serialized/deserialized
+console.log(profile.preferences.theme); // 'dark'
+console.log(profile.favoriteColors.length); // 3
+```
+
+#### Type Inference for JSON Columns
+
+TypeScript `Object` and `Array` types are automatically inferred as JSON columns:
+
+```typescript
+@Entity('documents')
+export class Document extends BaseEntity {
+    @PrimaryGeneratedColumn('int')
+    id!: number;
+
+    // These automatically become JSON columns (type: 'json')
+    @Column()
+    content!: { title: string; body: string; sections: Array<{ name: string; text: string }> };
+
+    @Column()
+    tags!: string[];
+
+    @Column()
+    authors!: Array<{ name: string; email: string; role: string }>;
+
+    // Regular text column for comparison
+    @Column({ type: 'text' })
+    status!: string;
+}
+```
+
+#### Custom Data Transformers
+
+Implement the `ColumnTransformer` interface for advanced data conversion:
+
+```typescript
+import { ColumnTransformer } from 'bun-sqlite-orm';
+
+// Date to ISO string transformer
+const dateStringTransformer: ColumnTransformer<Date, string> = {
+    to: (value: Date) => value.toISOString(),
+    from: (value: string) => new Date(value)
+};
+
+// Encrypt/decrypt transformer
+const encryptionTransformer: ColumnTransformer<string, string> = {
+    to: (value: string) => Buffer.from(value, 'utf-8').toString('base64'),
+    from: (value: string) => Buffer.from(value, 'base64').toString('utf-8')
+};
+
+// Array to comma-separated string transformer
+const arrayTransformer: ColumnTransformer<string[], string> = {
+    to: (value: string[]) => value.join(','),
+    from: (value: string) => value.split(',')
+};
+
+// Custom object serialization
+const customObjectTransformer: ColumnTransformer<UserSettings, string> = {
+    to: (value: UserSettings) => `${value.theme}:${value.fontSize}:${value.autoSave}`,
+    from: (value: string) => {
+        const [theme, fontSize, autoSave] = value.split(':');
+        return { theme, fontSize: Number(fontSize), autoSave: autoSave === 'true' };
+    }
+};
+
+interface UserSettings {
+    theme: string;
+    fontSize: number;
+    autoSave: boolean;
+}
+```
+
+#### Using Transformers in Entities
+
+Apply transformers to columns for custom data handling:
+
+```typescript
+@Entity('user_data')
+export class UserData extends BaseEntity {
+    @PrimaryGeneratedColumn('int')
+    id!: number;
+
+    // Custom date storage format
+    @Column({ transformer: dateStringTransformer })
+    lastLoginAt!: Date;
+
+    // Encrypted sensitive data
+    @Column({ transformer: encryptionTransformer })
+    sensitiveInfo!: string;
+
+    // Array stored as comma-separated values
+    @Column({ transformer: arrayTransformer })
+    permissions!: string[];
+
+    // Custom object serialization
+    @Column({ transformer: customObjectTransformer })
+    userSettings!: UserSettings;
+
+    // JSON column with custom transformer (transformer takes precedence)
+    @Column({ type: 'json', transformer: customObjectTransformer })
+    advancedSettings!: UserSettings;
+}
+
+// Usage examples
+const userData = await UserData.create({
+    lastLoginAt: new Date('2023-12-01T10:30:00Z'),
+    sensitiveInfo: 'secret data',
+    permissions: ['read', 'write', 'admin'],
+    userSettings: { theme: 'dark', fontSize: 16, autoSave: true },
+    advancedSettings: { theme: 'light', fontSize: 14, autoSave: false }
+});
+
+// Values are automatically transformed during save/load
+console.log(userData.lastLoginAt instanceof Date); // true
+console.log(userData.permissions); // ['read', 'write', 'admin']
+console.log(userData.sensitiveInfo); // 'secret data' (decrypted)
+```
+
+#### Transformer Error Handling
+
+Transformers include built-in error handling for robust data processing:
+
+```typescript
+const safeJsonTransformer: ColumnTransformer<unknown, string> = {
+    to: (value: unknown) => {
+        try {
+            return JSON.stringify(value);
+        } catch (error) {
+            throw new Error(`JSON serialization failed: ${error.message}`);
+        }
+    },
+    from: (value: string) => {
+        try {
+            return JSON.parse(value);
+        } catch (error) {
+            throw new Error(`JSON deserialization failed: ${error.message}`);
+        }
+    }
+};
+
+@Entity('flexible_data')
+export class FlexibleData extends BaseEntity {
+    @Column({ transformer: safeJsonTransformer })
+    dynamicContent!: unknown;
+}
+
+// Error handling in application code
+try {
+    const data = await FlexibleData.create({
+        dynamicContent: { complex: 'data', with: ['arrays', 'and', 'objects'] }
+    });
+} catch (error) {
+    if (error.message.includes('serialization failed')) {
+        console.error('Data transformation error:', error.message);
+    }
+}
+```
+
+#### JSON vs Transformer Priority
+
+When both `type: 'json'` and `transformer` are specified, the custom transformer takes precedence:
+
+```typescript
+@Entity('priority_example')
+export class PriorityExample extends BaseEntity {
+    // JSON serialization (built-in)
+    @Column({ type: 'json' })
+    jsonData!: { key: string; value: number };
+
+    // Custom transformer takes precedence over JSON
+    @Column({ type: 'json', transformer: customObjectTransformer })
+    customData!: UserSettings; // Uses customObjectTransformer, not JSON.stringify/parse
+}
+```
+
+#### Performance Considerations
+
+- **JSON Columns**: Optimized for complex objects and automatic type inference
+- **Custom Transformers**: Best for specific data formats and security requirements
+- **Storage**: JSON columns use SQLite TEXT storage with validation
+- **Indexing**: JSON columns support standard SQLite indexing on the stored TEXT
 
 ## 🚨 Enhanced Error System
 

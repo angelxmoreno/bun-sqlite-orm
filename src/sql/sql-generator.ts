@@ -22,7 +22,9 @@ export class SqlGenerator {
 
         // Generate column definitions
         for (const [, column] of entity.columns) {
-            let columnDef = `"${column.propertyName}" ${column.type.toUpperCase()}`;
+            // Map JSON column type to TEXT for SQLite storage
+            const sqlType = column.type === 'json' ? 'TEXT' : column.type.toUpperCase();
+            let columnDef = `"${column.propertyName}" ${sqlType}`;
 
             // Handle single auto-increment primary key (SQLite special case)
             if (

@@ -15,6 +15,7 @@ import {
     getEntityMetadata,
     resolveDependencies,
     toSQLQueryBinding,
+    transformValueFromStorage,
     validateDataSourceInitialization,
 } from './entity-utils';
 
@@ -610,19 +611,26 @@ export abstract class BaseEntity {
                     // For other nullable fields, leave them as undefined if they weren't set
                 } else {
                     const tsType = Reflect.getMetadata('design:type', this, propertyName);
+                    let transformedValue: unknown;
 
+                    // Check if transformer or JSON type should be applied
+                    if (metadata.transformer || metadata.type === 'json') {
+                        transformedValue = transformValueFromStorage(value, metadata.type, metadata.transformer);
+                    }
                     // Convert INTEGER (1/0) back to boolean for boolean properties
-                    if (metadata.type === 'integer' && tsType === Boolean) {
-                        (this as Record<string, unknown>)[propertyName] = value === 1;
+                    else if (metadata.type === 'integer' && tsType === Boolean) {
+                        transformedValue = value === 1;
                     }
                     // Convert stored date values back to Date objects using DateUtils
                     else if (tsType === Date && (typeof value === 'string' || typeof value === 'number')) {
-                        (this as Record<string, unknown>)[propertyName] = storageToDate(value);
+                        transformedValue = storageToDate(value);
                     }
                     // Default: use value as-is
                     else {
-                        (this as Record<string, unknown>)[propertyName] = value;
+                        transformedValue = value;
                     }
+
+                    (this as Record<string, unknown>)[propertyName] = transformedValue;
                 }
             }
         }

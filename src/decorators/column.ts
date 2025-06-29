@@ -10,13 +10,16 @@ export function Column(options: ColumnOptions = {}) {
         const type = Reflect.getMetadata('design:type', target, propertyKey);
 
         // Infer SQLite type from TypeScript type
-        let sqliteType: 'text' | 'integer' | 'real' | 'blob' = 'text';
+        let sqliteType: 'text' | 'integer' | 'real' | 'blob' | 'json' = 'text';
         if (type === Number) {
             sqliteType = options.type === 'real' ? 'real' : 'integer';
         } else if (type === String || type === Date) {
             sqliteType = 'text';
         } else if (type === Boolean) {
             sqliteType = 'integer'; // SQLite stores booleans as integers
+        } else if (type === Object || type === Array) {
+            // For complex objects/arrays, default to 'json' if no type specified
+            sqliteType = options.type || 'json';
         }
 
         // Check if property type includes null/undefined for nullable inference
@@ -31,6 +34,7 @@ export function Column(options: ColumnOptions = {}) {
             sqlDefault: options.sqlDefault,
             isPrimary: false,
             isGenerated: false,
+            transformer: options.transformer,
         };
 
         const entityConstructor = target.constructor as new () => unknown;

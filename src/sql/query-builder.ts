@@ -8,7 +8,9 @@ export class QueryBuilder {
         const columnDefinitions: string[] = [];
 
         for (const [propertyName, metadata] of columns) {
-            let definition = `${propertyName} ${metadata.type.toUpperCase()}`;
+            // Map JSON column type to TEXT for SQLite storage
+            const sqlType = metadata.type === 'json' ? 'TEXT' : metadata.type.toUpperCase();
+            let definition = `${propertyName} ${sqlType}`;
 
             if (metadata.isPrimary && metadata.generationStrategy === 'increment') {
                 definition += ' PRIMARY KEY AUTOINCREMENT';

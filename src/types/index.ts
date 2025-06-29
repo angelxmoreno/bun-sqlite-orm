@@ -12,8 +12,25 @@ export interface DataSourceOptions {
     logger?: DbLogger;
 }
 
+/**
+ * Transformer for converting between entity property values and database storage values
+ */
+export interface ColumnTransformer<EntityType = unknown, DatabaseType = unknown> {
+    /**
+     * Transform entity property value to database storage value
+     * Called during entity save operations
+     */
+    to(value: EntityType): DatabaseType;
+
+    /**
+     * Transform database storage value to entity property value
+     * Called during entity load operations
+     */
+    from(value: DatabaseType): EntityType;
+}
+
 export interface ColumnOptions {
-    type?: 'text' | 'integer' | 'real' | 'blob';
+    type?: 'text' | 'integer' | 'real' | 'blob' | 'json';
     nullable?: boolean;
     unique?: boolean;
     default?: unknown;
@@ -25,6 +42,11 @@ export interface ColumnOptions {
      * - `{ name?: string; unique?: boolean }` → fully-featured index
      */
     index?: boolean | string | { name?: string; unique?: boolean };
+    /**
+     * Optional transformer for custom data conversion between entity and database
+     * Transforms values during save/load operations
+     */
+    transformer?: ColumnTransformer;
 }
 
 export interface IndexOptions {
@@ -48,7 +70,7 @@ export interface EntityMetadata {
 
 export interface ColumnMetadata {
     propertyName: string;
-    type: 'text' | 'integer' | 'real' | 'blob';
+    type: 'text' | 'integer' | 'real' | 'blob' | 'json';
     nullable: boolean;
     unique: boolean;
     default?: unknown;
@@ -56,6 +78,7 @@ export interface ColumnMetadata {
     isPrimary: boolean;
     isGenerated: boolean;
     generationStrategy?: 'increment' | 'uuid';
+    transformer?: ColumnTransformer;
 }
 
 export type PrimaryGeneratedColumnType = 'int' | 'uuid';
