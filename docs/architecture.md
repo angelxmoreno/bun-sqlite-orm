@@ -245,6 +245,7 @@ bun-sqlite-orm uses **automatic schema synchronization** where entity decorators
 - **Transparent DI** - All dependency injection happens internally
 - **High Performance** - Automatic statement caching provides 30-50% speed improvements
 - **ACID Transactions** - Full transaction support with automatic rollback and nested savepoints
+- **Enhanced Error System** - Comprehensive error handling with base class and entity context
 - **Testable** - Easy to mock database and metadata for tests
 - **Isolated** - No pollution of user's DI container
 - **Single Source of Truth** - Entity files drive everything
@@ -430,3 +431,71 @@ id: string;
 @PrimaryGeneratedColumn("int") // Explicit auto-increment
 id: number;
 ```
+
+## Enhanced Error System
+
+bun-sqlite-orm features a comprehensive error handling system with a common base class and rich context information for improved developer experience and debugging.
+
+### Error Architecture
+
+**Base Class** - `BunSqliteOrmError`:
+```typescript
+export abstract class BunSqliteOrmError extends Error {
+    public readonly entityName?: string;
+    public readonly timestamp: Date;
+    
+    constructor(message: string, entityName?: string) {
+        super(message);
+        this.name = this.constructor.name;
+        this.entityName = entityName;
+        this.timestamp = new Date();
+    }
+}
+```
+
+### Error Class Hierarchy
+
+**Core Entity Errors:**
+- `EntityNotFoundError` - Entity lookup failures with criteria context
+- `ValidationError` - Entity validation failures with detailed field errors  
+- `DatabaseError` - Database operation failures with operation context
+
+**Advanced Error Types:**
+- `TransactionError` - Transaction operation failures (begin, commit, rollback, savepoint)
+- `ConnectionError` - Database connection issues with path and connection type
+- `ConstraintViolationError` - Database constraint violations with constraint details
+- `ConfigurationError` - Configuration and setup issues
+- `QueryError` - SQL query execution failures with SQL and parameters
+- `TypeConversionError` - Type conversion failures with property context
+- `MigrationError` - Migration operation failures with direction and migration name
+
+### Error Context Enhancement
+
+All errors provide structured context:
+```typescript
+try {
+    await User.get(invalidId);
+} catch (error) {
+    if (error instanceof BunSqliteOrmError) {
+        console.log(`Entity: ${error.entityName}`);
+        console.log(`Error Type: ${error.constructor.name}`);
+        console.log(`Timestamp: ${error.timestamp}`);
+        
+        // Error-specific properties
+        if (error instanceof EntityNotFoundError) {
+            console.log(`Criteria: ${JSON.stringify(error.criteria)}`);
+        } else if (error instanceof DatabaseError) {
+            console.log(`Operation: ${error.operation}`);
+            console.log(`Original Error: ${error.originalError.message}`);
+        }
+    }
+}
+```
+
+### Benefits
+
+- **Unified Error Handling** - Catch all ORM errors with single base class
+- **Rich Context** - Entity names, timestamps, and operation-specific details
+- **Type Safety** - Full TypeScript support for error properties
+- **Developer Experience** - Meaningful error messages and structured data
+- **User-Friendly** - Easy conversion to user-facing error messages
