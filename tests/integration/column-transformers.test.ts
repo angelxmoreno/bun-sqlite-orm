@@ -1,3 +1,4 @@
+import { Database } from 'bun:sqlite';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import { BaseEntity, Column, Entity, PrimaryGeneratedColumn } from '../../src';
 import type { ColumnTransformer } from '../../src/types';
@@ -318,11 +319,17 @@ describe('Column Transformers Integration Tests', () => {
                 errorProneField: 'valid',
             });
 
-            // Manually insert problematic data to test load error
-            // Note: This would require direct database manipulation in a real scenario
-            // For this test, we'll just verify that the normal flow works
-            const reloaded = await ErrorTransformerTestEntity.get(entity.id);
-            expect(reloaded.errorProneField).toBe('valid');
+            // Access the raw database connection to inject invalid data
+            const rawDb = testDS.dataSource.getDatabase();
+
+            // Insert data that will cause the transformer's from() method to fail
+            // The transformer expects non-'ERROR' values, so we inject 'LOAD_ERROR'
+            // which will trigger the error in the from() method
+            rawDb.run('UPDATE error_transformer_test SET errorProneField = ? WHERE id = ?', ['LOAD_ERROR', entity.id]);
+
+            // Now try to load the entity - this should trigger transformer error
+            // The transformer error gets wrapped, so we just verify it throws
+            await expect(ErrorTransformerTestEntity.get(entity.id)).rejects.toThrow();
         });
 
         test('should handle malformed data gracefully', async () => {
