@@ -23,15 +23,18 @@ describe('Column Transformers Integration Tests', () => {
         from: (value: string) => value.split(',').map(Number),
     };
 
+    // Use a UUID-based marker that's extremely unlikely to collide with real data
+    const EMPTY_STRING_MARKER = '__EMPTY_STRING_MARKER_550e8400-e29b-41d4-a716-446655440000__';
+
     const encryptionTransformer: ColumnTransformer<string | null, string | null> = {
         to: (value: string | null) => {
             if (value === null || value === undefined) return null;
-            if (value === '') return 'EMPTY_STRING_MARKER'; // Special marker for empty strings
+            if (value === '') return EMPTY_STRING_MARKER; // UUID-based marker for empty strings
             return Buffer.from(value, 'utf-8').toString('base64');
         },
         from: (value: string | null) => {
             if (value === null || value === undefined) return null;
-            if (value === 'EMPTY_STRING_MARKER') return '';
+            if (value === EMPTY_STRING_MARKER) return '';
             return Buffer.from(value, 'base64').toString('utf-8');
         },
     };
