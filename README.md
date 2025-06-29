@@ -26,12 +26,13 @@
 ## ✨ Key Features
 
 - 🚀 **Built for Bun** - Leverages Bun's native SQLite performance and capabilities
-- 🎯 **TypeScript First** - Complete type safety with decorator-based entity definitions  
+- 🎯 **TypeScript First** - Complete type safety with decorator-based entity definitions and type-safe updates  
 - 🔄 **Active Record Pattern** - Intuitive entity lifecycle management with familiar Rails-like syntax
 - ✅ **Built-in Validation** - Seamless integration with class-validator decorators
 - 🛠️ **Auto Migrations** - Automatic table creation from entity metadata, zero-config setup
 - 🔍 **Rich Querying** - Type-safe query methods with find, count, exists, and bulk operations
 - ⚡ **Statement Caching** - Automatic prepared statement caching for 30-50% performance improvement
+- 🔀 **Transaction Support** - Comprehensive transaction support with ACID compliance, savepoints, and isolation levels
 - 📈 **Database Indexing** - Comprehensive index support with simple, composite, and unique indexes
 - 📝 **Flexible Primary Keys** - Support for auto-increment, UUID, custom, and composite primary key strategies
 - 🔒 **Enhanced Error System** - Comprehensive error handling with base class and entity context
@@ -139,7 +140,10 @@ const userExists = await User.exists({ email: 'john@example.com' });
 user.age = 31;
 await user.save(); // Updates only changed fields
 
-await user.update({ name: 'Johnny Doe', age: 32 }); // Update multiple fields
+// Type-safe partial updates with Partial<T>
+await user.update({ name: 'Johnny Doe', age: 32 }); // ✅ Full IntelliSense support
+// await user.update({ invalidField: 'value' }); // ❌ TypeScript error - invalid property
+// await user.update({ age: 'not-a-number' }); // ❌ TypeScript error - wrong type
 
 // Delete operations
 await user.remove(); // Delete single entity
@@ -147,7 +151,232 @@ await user.remove(); // Delete single entity
 // Bulk operations
 await User.updateAll({ status: 'active' }, { age: { gte: 18 } });
 await User.deleteAll({ status: 'inactive' });
+
+// Transaction support for atomic operations
+const result = await dataSource.transaction(async (tx) => {
+    const user = await User.create({
+        name: 'Alice',
+        email: 'alice@example.com'
+    });
+    
+    const profile = await Profile.create({
+        userId: user.id,
+        bio: 'Software Engineer'
+    });
+    
+    return { user, profile }; // Both created atomically
+});
 ```
+
+## 🎯 Enhanced Type Safety
+
+BunSQLiteORM provides comprehensive TypeScript type safety throughout the API, with recent improvements to the `update()` method for better developer experience.
+
+### Type-Safe Updates with Partial<T>
+
+The instance `update()` method now uses `Partial<T>` for complete type safety:
+
+```typescript
+@Entity('users')
+class User extends BaseEntity {
+    @PrimaryGeneratedColumn()
+    id!: number;
+    
+    @Column()
+    name!: string;
+    
+    @Column()
+    email!: string;
+    
+    @Column()
+    age!: number;
+    
+    @Column()
+    preferences?: {
+        theme: 'light' | 'dark';
+        notifications: boolean;
+    };
+    
+    @Column()
+    tags?: string[];
+}
+
+const user = await User.get(1);
+
+// ✅ Type-safe updates with IntelliSense
+await user.update({
+    name: 'Updated Name',      // ✅ Autocompleted, type-checked
+    email: 'new@email.com',    // ✅ Valid string property
+    age: 30,                   // ✅ Valid number property
+});
+
+// ✅ Partial updates (any subset of properties)
+await user.update({
+    name: 'Just the name'      // ✅ Only updating one field
+});
+
+// ✅ Complex object properties supported
+await user.update({
+    preferences: { 
+        theme: 'dark', 
+        notifications: true 
+    },
+    tags: ['admin', 'verified']
+});
+
+// ❌ TypeScript errors prevent runtime issues
+// await user.update({
+//     invalidProperty: 'value'    // ❌ Property doesn't exist
+// });
+
+// await user.update({
+//     name: 123,                  // ❌ Wrong type (should be string)
+//     age: 'not-a-number'        // ❌ Wrong type (should be number)
+// });
+```
+
+### Benefits of Enhanced Type Safety
+
+1. **IntelliSense Support**: Full autocomplete for entity properties
+2. **Compile-time Validation**: Catch typos and type errors before runtime
+3. **Complex Types**: Support for objects, arrays, and nested structures
+4. **Consistent API**: Matches the type safety of `create()` method
+5. **Developer Experience**: Faster development with fewer bugs
+
+### API Consistency
+
+All entity methods now provide consistent type safety:
+
+```typescript
+// All methods support the same level of type safety
+const user1 = await User.create({        // ✅ Partial<User>
+    name: 'Alice',
+    email: 'alice@example.com'
+});
+
+await user1.update({                     // ✅ Partial<User> (improved!)
+    age: 25
+});
+
+// Static methods maintain their existing signatures
+await User.updateAll({                   // Record<string, SQLQueryBindings>
+    status: 'active'
+}, { age: { gte: 18 } });
+```
+
+## 🔀 Transaction Support
+
+BunSQLiteORM provides comprehensive transaction support for atomic database operations with automatic rollback on errors, ensuring data consistency and integrity.
+
+### Basic Transactions
+
+```typescript
+// Simple transaction with automatic commit/rollback
+const result = await dataSource.transaction(async (tx) => {
+    const user = await User.create({
+        name: 'John Doe',
+        email: 'john@example.com'
+    });
+    
+    const profile = await Profile.create({
+        userId: user.id,
+        bio: 'Software Engineer',
+        avatar: 'avatar.jpg'
+    });
+    
+    // If any operation fails, entire transaction is rolled back
+    if (someBusinessRule(user, profile)) {
+        throw new Error('Business logic violation'); // Triggers rollback
+    }
+    
+    return { user, profile }; // Success - transaction commits
+});
+```
+
+### Advanced Transaction Patterns
+
+```typescript
+// Parallel operations within transaction
+const [users, posts] = await dataSource.transactionParallel([
+    async (tx) => Promise.all([
+        User.create({ name: 'Alice' }),
+        User.create({ name: 'Bob' })
+    ]),
+    async (tx) => Promise.all([
+        Post.create({ title: 'Post 1', content: '...' }),
+        Post.create({ title: 'Post 2', content: '...' })
+    ])
+]);
+
+// Sequential operations with result chaining
+const finalResult = await dataSource.transactionSequential([
+    async (tx) => User.create({ name: 'John' }),
+    async (tx, user) => Post.create({ 
+        title: 'Hello', 
+        userId: user.id 
+    }),
+    async (tx, post) => Comment.create({ 
+        text: 'Great post!', 
+        postId: post.id 
+    })
+]);
+```
+
+### Savepoints (Nested Transactions)
+
+```typescript
+await dataSource.transaction(async (tx) => {
+    const user = await User.create({ name: 'John' });
+    
+    // Create savepoint for risky operations
+    const savepoint = await tx.savepoint('user_profile');
+    
+    try {
+        await Profile.create({ userId: user.id, bio: 'Complex bio...' });
+        await tx.releaseSavepoint(savepoint); // Success
+    } catch (error) {
+        await tx.rollbackToSavepoint(savepoint); // Rollback to savepoint
+        // User still exists, but profile creation was undone
+    }
+    
+    return user;
+});
+```
+
+### Transaction Isolation Levels
+
+```typescript
+// Use IMMEDIATE isolation for critical operations
+await dataSource.transaction(async (tx) => {
+    // High-priority operations that need immediate locks
+    const account = await Account.get(accountId);
+    account.balance -= withdrawAmount;
+    await account.save();
+}, { isolation: 'IMMEDIATE' });
+
+// Available isolation levels:
+// - 'DEFERRED' (default): Transaction starts when first read/write occurs
+// - 'IMMEDIATE': Transaction starts immediately, blocks other writers  
+// - 'EXCLUSIVE': Transaction starts immediately, blocks all other connections
+```
+
+### Manual Transaction Control
+
+```typescript
+const tx = dataSource.createTransaction({ isolation: 'IMMEDIATE' });
+
+try {
+    await tx.begin();
+    
+    const user = await User.create({ name: 'John' });
+    const profile = await Profile.create({ userId: user.id });
+    
+    await tx.commit();
+    return { user, profile };
+} catch (error) {
+    await tx.rollback();
+    throw error;
+}
 
 ## 🎨 Decorators Reference
 

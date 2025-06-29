@@ -23,7 +23,7 @@
 
 ### Persistence
 - `user.save()` - Save entity (insert or update)
-- `user.update(data)` - Update entity with new data and save
+- `user.update(data)` - Type-safe update with Partial<T> and save
 - `user.remove()` - Delete entity
 - `user.reload()` - Refresh entity from database (works with single and composite keys)
 
