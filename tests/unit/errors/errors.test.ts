@@ -13,12 +13,12 @@ describe('Error Classes', () => {
                 },
             ];
 
-            const validationError = new ValidationError(errors);
+            const validationError = new ValidationError('TestEntity', errors);
 
             expect(validationError).toBeInstanceOf(Error);
             expect(validationError).toBeInstanceOf(ValidationError);
             expect(validationError.name).toBe('ValidationError');
-            expect(validationError.message).toBe('Validation failed');
+            expect(validationError.message).toBe('Validation failed for TestEntity');
             expect(validationError.errors).toEqual(errors);
             expect(validationError.errors).toHaveLength(1);
         });
@@ -42,7 +42,7 @@ describe('Error Classes', () => {
                 },
             ];
 
-            const validationError = new ValidationError(errors);
+            const validationError = new ValidationError('TestEntity', errors);
 
             expect(validationError.errors).toEqual(errors);
             expect(validationError.errors).toHaveLength(3);
@@ -50,7 +50,7 @@ describe('Error Classes', () => {
 
         test('should create ValidationError with empty errors array', () => {
             const errors: ValidationErrorDetail[] = [];
-            const validationError = new ValidationError(errors);
+            const validationError = new ValidationError('TestEntity', errors);
 
             expect(validationError.errors).toEqual([]);
             expect(validationError.errors).toHaveLength(0);
@@ -64,7 +64,7 @@ describe('Error Classes', () => {
                 },
             ];
 
-            const validationError = new ValidationError(errors);
+            const validationError = new ValidationError('TestEntity', errors);
 
             expect(validationError.errors[0].value).toBeUndefined();
             expect(validationError.errors[0].property).toBe('name');
@@ -105,7 +105,7 @@ describe('Error Classes', () => {
                 },
             ];
 
-            const validationError = new ValidationError(errors);
+            const validationError = new ValidationError('TestEntity', errors);
 
             expect(validationError.errors).toHaveLength(6);
             expect(validationError.errors[0].value).toBe('test');
@@ -126,11 +126,11 @@ describe('Error Classes', () => {
             ];
 
             expect(() => {
-                throw new ValidationError(errors);
+                throw new ValidationError('TestEntity', errors);
             }).toThrow(ValidationError);
 
             try {
-                throw new ValidationError(errors);
+                throw new ValidationError('TestEntity', errors);
             } catch (error) {
                 expect(error).toBeInstanceOf(ValidationError);
                 expect((error as ValidationError).errors).toEqual(errors);
@@ -312,7 +312,7 @@ describe('Error Classes', () => {
 
     describe('Error inheritance and instanceof checks', () => {
         test('all custom errors should be instances of Error', () => {
-            const validationError = new ValidationError([]);
+            const validationError = new ValidationError('TestEntity', []);
             const databaseError = new DatabaseError('test', new Error('original'));
             const entityNotFoundError = new EntityNotFoundError('Entity', {});
 
@@ -322,7 +322,7 @@ describe('Error Classes', () => {
         });
 
         test('errors should have correct names for debugging', () => {
-            const validationError = new ValidationError([]);
+            const validationError = new ValidationError('TestEntity', []);
             const databaseError = new DatabaseError('test', new Error('original'));
             const entityNotFoundError = new EntityNotFoundError('Entity', {});
 
@@ -333,7 +333,7 @@ describe('Error Classes', () => {
 
         test('should be distinguishable in catch blocks', () => {
             const errors = [
-                new ValidationError([{ property: 'test', message: 'error' }]),
+                new ValidationError('TestEntity', [{ property: 'test', message: 'error' }]),
                 new DatabaseError('db error', new Error('original')),
                 new EntityNotFoundError('Entity', { id: 1 }),
             ];
