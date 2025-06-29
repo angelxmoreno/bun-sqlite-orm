@@ -284,7 +284,7 @@ export abstract class BaseEntity {
         }
     }
 
-    async update(data: Record<string, SQLQueryBindings>): Promise<void> {
+    async update(data: Partial<this>): Promise<void> {
         Object.assign(this, data);
         await this.save();
     }

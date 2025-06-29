@@ -26,7 +26,7 @@
 ## ✨ Key Features
 
 - 🚀 **Built for Bun** - Leverages Bun's native SQLite performance and capabilities
-- 🎯 **TypeScript First** - Complete type safety with decorator-based entity definitions  
+- 🎯 **TypeScript First** - Complete type safety with decorator-based entity definitions and type-safe updates  
 - 🔄 **Active Record Pattern** - Intuitive entity lifecycle management with familiar Rails-like syntax
 - ✅ **Built-in Validation** - Seamless integration with class-validator decorators
 - 🛠️ **Auto Migrations** - Automatic table creation from entity metadata, zero-config setup
@@ -139,7 +139,10 @@ const userExists = await User.exists({ email: 'john@example.com' });
 user.age = 31;
 await user.save(); // Updates only changed fields
 
-await user.update({ name: 'Johnny Doe', age: 32 }); // Update multiple fields
+// Type-safe partial updates with Partial<T>
+await user.update({ name: 'Johnny Doe', age: 32 }); // ✅ Full IntelliSense support
+// await user.update({ invalidField: 'value' }); // ❌ TypeScript error - invalid property
+// await user.update({ age: 'not-a-number' }); // ❌ TypeScript error - wrong type
 
 // Delete operations
 await user.remove(); // Delete single entity
@@ -147,6 +150,102 @@ await user.remove(); // Delete single entity
 // Bulk operations
 await User.updateAll({ status: 'active' }, { age: { gte: 18 } });
 await User.deleteAll({ status: 'inactive' });
+```
+
+## 🎯 Enhanced Type Safety
+
+BunSQLiteORM provides comprehensive TypeScript type safety throughout the API, with recent improvements to the `update()` method for better developer experience.
+
+### Type-Safe Updates with Partial<T>
+
+The instance `update()` method now uses `Partial<T>` for complete type safety:
+
+```typescript
+@Entity('users')
+class User extends BaseEntity {
+    @PrimaryGeneratedColumn()
+    id!: number;
+    
+    @Column()
+    name!: string;
+    
+    @Column()
+    email!: string;
+    
+    @Column()
+    age!: number;
+    
+    @Column()
+    preferences?: {
+        theme: 'light' | 'dark';
+        notifications: boolean;
+    };
+    
+    @Column()
+    tags?: string[];
+}
+
+const user = await User.get(1);
+
+// ✅ Type-safe updates with IntelliSense
+await user.update({
+    name: 'Updated Name',      // ✅ Autocompleted, type-checked
+    email: 'new@email.com',    // ✅ Valid string property
+    age: 30,                   // ✅ Valid number property
+});
+
+// ✅ Partial updates (any subset of properties)
+await user.update({
+    name: 'Just the name'      // ✅ Only updating one field
+});
+
+// ✅ Complex object properties supported
+await user.update({
+    preferences: { 
+        theme: 'dark', 
+        notifications: true 
+    },
+    tags: ['admin', 'verified']
+});
+
+// ❌ TypeScript errors prevent runtime issues
+// await user.update({
+//     invalidProperty: 'value'    // ❌ Property doesn't exist
+// });
+
+// await user.update({
+//     name: 123,                  // ❌ Wrong type (should be string)
+//     age: 'not-a-number'        // ❌ Wrong type (should be number)
+// });
+```
+
+### Benefits of Enhanced Type Safety
+
+1. **IntelliSense Support**: Full autocomplete for entity properties
+2. **Compile-time Validation**: Catch typos and type errors before runtime
+3. **Complex Types**: Support for objects, arrays, and nested structures
+4. **Consistent API**: Matches the type safety of `create()` method
+5. **Developer Experience**: Faster development with fewer bugs
+
+### API Consistency
+
+All entity methods now provide consistent type safety:
+
+```typescript
+// All methods support the same level of type safety
+const user1 = await User.create({        // ✅ Partial<User>
+    name: 'Alice',
+    email: 'alice@example.com'
+});
+
+await user1.update({                     // ✅ Partial<User> (improved!)
+    age: 25
+});
+
+// Static methods maintain their existing signatures
+await User.updateAll({                   // Record<string, SQLQueryBindings>
+    status: 'active'
+}, { age: { gte: 18 } });
 ```
 
 ## 🎨 Decorators Reference
