@@ -245,7 +245,7 @@ describe('JSON Columns Integration Tests', () => {
     });
 
     describe('Error Handling', () => {
-        test('should handle invalid JSON data gracefully during creation', async () => {
+        test('should create entities with valid JSON data', async () => {
             // This should work - valid JSON data
             const validEntity = await JsonTestEntity.create({
                 simpleObject: { name: 'Valid', age: 25 },
@@ -257,6 +257,46 @@ describe('JSON Columns Integration Tests', () => {
             });
 
             expect(validEntity.simpleObject.name).toBe('Valid');
+        });
+
+        test('should handle invalid JSON data gracefully during creation', async () => {
+            // Test with circular reference - should throw JSON serialization error
+            const circularObj: Record<string, unknown> = { name: 'test' };
+            circularObj.self = circularObj;
+
+            await expect(
+                JsonTestEntity.create({
+                    simpleObject: circularObj as { name: string; age: number },
+                    complexData: {
+                        user: { id: 1, profile: { name: 'Test', settings: {} } },
+                        metadata: { tags: ['test'], created: '2023-01-01' },
+                    },
+                    regularText: 'Test',
+                })
+            ).rejects.toThrow('JSON serialization error');
+
+            // Test with non-serializable values (functions)
+            const objWithFunction = {
+                name: 'test',
+                age: 25,
+                fn: () => 'not serializable',
+            };
+
+            // Create entity with function - this should work during creation
+            const entityWithFunction = await JsonTestEntity.create({
+                simpleObject: objWithFunction as { name: string; age: number },
+                complexData: {
+                    user: { id: 1, profile: { name: 'Test', settings: {} } },
+                    metadata: { tags: ['test'], created: '2023-01-01' },
+                },
+                regularText: 'Test',
+            });
+
+            // Reload from database - functions should be stripped during JSON round-trip
+            const reloaded = await JsonTestEntity.get(entityWithFunction.id);
+            expect(reloaded.simpleObject.name).toBe('test');
+            expect(reloaded.simpleObject.age).toBe(25);
+            expect((reloaded.simpleObject as Record<string, unknown>).fn).toBeUndefined();
         });
 
         test('should maintain data integrity with nested JSON structures', async () => {
