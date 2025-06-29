@@ -13,7 +13,7 @@ bun-sqlite-orm provides a modern Active Record pattern ORM built specifically fo
 - **Active Record Pattern**: Entities extend BaseEntity with static and instance methods
 - **Decorator-based**: Uses TypeScript decorators for entity and column definitions
 - **Auto-migration**: Automatic table creation from entity metadata
-- **Type Safety**: Full TypeScript integration with SQLQueryBindings enforcement
+- **Type Safety**: Full TypeScript integration with SQLQueryBindings enforcement and Partial<T> for instance updates
 - **Validation**: Built-in class-validator integration
 - **Bun:SQLite Integration**: Optimized for Bun's native SQLite performance
 
@@ -32,9 +32,10 @@ bun-sqlite-orm provides a modern Active Record pattern ORM built specifically fo
 ### Active Record Operations
 - Static methods: `create()`, `get()`, `find()`, `findFirst()`, `count()`, `exists()`
 - Bulk operations: `deleteAll()`, `updateAll()` with conditional filtering
-- Instance methods: `save()`, `update()`, `remove()`, `reload()`, `isNew()`, `isChanged()`, `toJSON()`
+- Instance methods: `save()`, `update()` (type-safe with Partial<T>), `remove()`, `reload()`, `isNew()`, `isChanged()`, `toJSON()`
 - Entity lifecycle and dirty checking with `getChanges()`
 - **JSON serialization** with `toJSON()` method that excludes internal ORM properties for clean API responses
+- **Type-safe updates** with IntelliSense support and compile-time validation
 - Build pattern for entity creation without immediate persistence
 
 ### Database Features
@@ -128,6 +129,13 @@ const userExists = await User.exists({ email: 'john@example.com' });
 // Update operations
 user.name = 'John Smith';
 await user.save(); // Only updates changed fields
+
+// Type-safe instance updates with Partial<T>
+await user.update({
+  name: 'John Smith',        // ✅ Autocompleted, type-checked
+  department: 'Engineering'  // ✅ Full IntelliSense support
+});
+// await user.update({ invalid: 'field' }); // ❌ TypeScript error
 
 // Bulk operations
 await User.updateAll({ isActive: false }, { department: 'Sales' });
@@ -281,6 +289,66 @@ try {
 }
 ```
 
+### Enhanced Type Safety with update() Method
+
+```typescript
+@Entity('users')
+class User extends BaseEntity {
+  @PrimaryGeneratedColumn()
+  id!: number;
+  
+  @Column()
+  name!: string;
+  
+  @Column()
+  email!: string;
+  
+  @Column()
+  preferences?: {
+    theme: 'light' | 'dark';
+    notifications: boolean;
+  };
+}
+
+const user = await User.get(1);
+
+// ✅ Type-safe updates with full IntelliSense
+await user.update({
+  name: 'Updated Name',      // ✅ Autocompleted, type-checked
+  email: 'new@email.com',    // ✅ Valid string property
+  preferences: {             // ✅ Complex objects supported
+    theme: 'dark',
+    notifications: true
+  }
+});
+
+// ✅ Partial updates (any subset of properties)
+await user.update({
+  name: 'Just the name'      // ✅ Only updating one field
+});
+
+// ❌ TypeScript errors prevent runtime issues
+// await user.update({
+//   invalidProperty: 'value'    // ❌ Property doesn't exist
+//   name: 123,                  // ❌ Wrong type (should be string)
+// });
+
+// API consistency - all methods provide same level of type safety
+const user1 = await User.create({        // ✅ Partial<User>
+  name: 'Alice',
+  email: 'alice@example.com'
+});
+
+await user1.update({                     // ✅ Partial<User> (enhanced!)
+  preferences: { theme: 'dark', notifications: false }
+});
+
+// Static methods maintain their existing signatures
+await User.updateAll({                   // Record<string, SQLQueryBindings>
+  preferences: JSON.stringify({ theme: 'light' })
+}, { name: 'Alice' });
+```
+
 ### State Management and Dirty Checking
 
 ```typescript
@@ -290,7 +358,7 @@ console.log(user.isChanged()); // false
 
 user.name = 'New Name';
 console.log(user.isChanged()); // true
-console.log(user.getChanges()); // ['name']
+console.log(user.getChanges()); // { name: { from: 'Old Name', to: 'New Name' } }
 
 await user.save(); // Only updates changed fields
 console.log(user.isChanged()); // false
