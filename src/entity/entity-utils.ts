@@ -101,6 +101,43 @@ export function toSQLQueryBinding(value: unknown): SQLQueryBindings | undefined 
 }
 
 /**
+ * Applies transformations to a value for database storage
+ * Handles JSON serialization and custom transformers
+ */
+export function transformValueForStorage(
+    value: unknown,
+    columnType: 'text' | 'integer' | 'real' | 'blob' | 'json',
+    transformer?: import('../types').ColumnTransformer
+): SQLQueryBindings | undefined {
+    if (value === undefined) {
+        return undefined;
+    }
+
+    let transformedValue: unknown = value;
+
+    // Apply custom transformer first if provided
+    if (transformer) {
+        try {
+            transformedValue = (transformer as { to: (val: unknown) => unknown }).to(value);
+        } catch (error) {
+            throw new Error(`Transformer error during save: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+
+    // Handle JSON serialization for json column type
+    if (columnType === 'json' && !transformer) {
+        try {
+            transformedValue = JSON.stringify(transformedValue);
+        } catch (error) {
+            throw new Error(`JSON serialization error: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+
+    // Apply standard conversions
+    return toSQLQueryBinding(transformedValue);
+}
+
+/**
  * Builds conditions object from primary key values
  */
 export function buildPrimaryKeyConditions(
@@ -122,11 +159,11 @@ export function buildPrimaryKeyConditions(
 }
 
 /**
- * Builds data object for insert/update operations, filtering valid SQLQueryBindings
+ * Builds data object for insert/update operations, applying transformations and filtering valid SQLQueryBindings
  */
 export function buildDataObject(
     entity: object,
-    columns: Map<string, { propertyName: string; isPrimary?: boolean }>,
+    columns: Map<string, import('../types').ColumnMetadata>,
     excludePrimary = false
 ): Record<string, SQLQueryBindings> {
     const data: Record<string, SQLQueryBindings> = {};
@@ -137,7 +174,7 @@ export function buildDataObject(
         }
 
         const value = (entity as Record<string, unknown>)[propertyName];
-        const sqlBinding = toSQLQueryBinding(value);
+        const sqlBinding = transformValueForStorage(value, metadata.type, metadata.transformer);
 
         if (sqlBinding !== undefined) {
             data[propertyName] = sqlBinding;
@@ -145,6 +182,42 @@ export function buildDataObject(
     }
 
     return data;
+}
+
+/**
+ * Transforms a value from database storage to entity property
+ * Handles JSON deserialization and custom transformers
+ */
+export function transformValueFromStorage(
+    value: unknown,
+    columnType: 'text' | 'integer' | 'real' | 'blob' | 'json',
+    transformer?: import('../types').ColumnTransformer
+): unknown {
+    if (value === null || value === undefined) {
+        return value;
+    }
+
+    let transformedValue: unknown = value;
+
+    // Handle JSON deserialization for json column type (before custom transformer)
+    if (columnType === 'json' && !transformer && typeof value === 'string') {
+        try {
+            transformedValue = JSON.parse(value);
+        } catch (error) {
+            throw new Error(`JSON deserialization error: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+
+    // Apply custom transformer if provided
+    if (transformer) {
+        try {
+            transformedValue = (transformer as { from: (val: unknown) => unknown }).from(transformedValue);
+        } catch (error) {
+            throw new Error(`Transformer error during load: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+
+    return transformedValue;
 }
 
 /**
