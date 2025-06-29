@@ -13,14 +13,14 @@ describe('JSON Columns Integration Tests', () => {
         id!: number;
 
         @Column({ type: 'json' })
-        simpleObject!: { name: string; age: number };
+        simpleObject!: { name: string; age: number; role?: string };
 
         @Column({ type: 'json', nullable: true })
         optionalArray?: string[] | null;
 
         @Column({ type: 'json' })
         complexData!: {
-            user: { id: number; profile: { name: string; settings: Record<string, unknown> } };
+            user: { id: number; profile: { name: string; settings: Record<string, unknown> & { theme?: string } } };
             metadata: { tags: string[]; created: string };
         };
 
@@ -214,7 +214,7 @@ describe('JSON Columns Integration Tests', () => {
     });
 
     describe('Query Operations with JSON Columns', () => {
-        test('should find entities with specific JSON values', async () => {
+        test('should find entities by regular text fields', async () => {
             const entity1 = await JsonTestEntity.create({
                 simpleObject: { name: 'Alice', age: 25 },
                 complexData: {
@@ -233,7 +233,7 @@ describe('JSON Columns Integration Tests', () => {
                 regularText: 'Bob',
             });
 
-            // Find by regular text field (not JSON)
+            // Find by regular text field
             const aliceEntities = await JsonTestEntity.find({ regularText: 'Alice' });
             expect(aliceEntities).toHaveLength(1);
             expect(aliceEntities[0].simpleObject.name).toBe('Alice');
@@ -241,6 +241,57 @@ describe('JSON Columns Integration Tests', () => {
             const bobEntities = await JsonTestEntity.find({ regularText: 'Bob' });
             expect(bobEntities).toHaveLength(1);
             expect(bobEntities[0].simpleObject.name).toBe('Bob');
+        });
+
+        test('should demonstrate JSON column querying limitations and workarounds', async () => {
+            // Create test entities with different JSON structures
+            const entity1 = await JsonTestEntity.create({
+                simpleObject: { name: 'Alice', age: 25, role: 'user' },
+                complexData: {
+                    user: { id: 1, profile: { name: 'Alice', settings: { theme: 'dark' } } },
+                    metadata: { tags: ['user', 'active'], created: '2023-01-01' },
+                },
+                regularText: 'TestEntity1',
+            });
+
+            const entity2 = await JsonTestEntity.create({
+                simpleObject: { name: 'Bob', age: 30, role: 'admin' },
+                complexData: {
+                    user: { id: 2, profile: { name: 'Bob', settings: { theme: 'light' } } },
+                    metadata: { tags: ['admin', 'super'], created: '2023-01-02' },
+                },
+                regularText: 'TestEntity2',
+            });
+
+            // SQLite JSON querying limitation: Direct JSON property queries not supported in ORM
+            // This would not work: JsonTestEntity.find({ 'simpleObject.name': 'Alice' })
+
+            // Workaround 1: Fetch all and filter in application code
+            const allEntities = await JsonTestEntity.find({});
+            const aliceEntity = allEntities.find((entity: JsonTestEntity) => entity.simpleObject.name === 'Alice');
+            expect(aliceEntity).toBeDefined();
+            expect(aliceEntity?.simpleObject.role).toBe('user');
+
+            // Workaround 2: Use exact JSON string matching (limited use case)
+            const exactJsonMatch = JSON.stringify({ name: 'Bob', age: 30, role: 'admin' });
+            const entitiesWithExactMatch = allEntities.filter(
+                (entity: JsonTestEntity) => JSON.stringify(entity.simpleObject) === exactJsonMatch
+            );
+            expect(entitiesWithExactMatch).toHaveLength(1);
+            expect(entitiesWithExactMatch[0].regularText).toBe('TestEntity2');
+
+            // Workaround 3: Use application-level filtering for complex queries
+            const userRoleEntities = allEntities.filter(
+                (entity: JsonTestEntity) => entity.simpleObject.role === 'user'
+            );
+            expect(userRoleEntities).toHaveLength(1);
+            expect(userRoleEntities[0].simpleObject.name).toBe('Alice');
+
+            const entitiesWithDarkTheme = allEntities.filter(
+                (entity: JsonTestEntity) => entity.complexData.user.profile.settings.theme === 'dark'
+            );
+            expect(entitiesWithDarkTheme).toHaveLength(1);
+            expect(entitiesWithDarkTheme[0].simpleObject.name).toBe('Alice');
         });
     });
 
