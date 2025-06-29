@@ -40,12 +40,14 @@ bun-sqlite-orm provides a modern Active Record pattern ORM built specifically fo
 
 ### Database Features
 - **Initialization validation** preventing operations before DataSource setup
-- **Type-safe parameterized queries** with SQLQueryBindings enforcement
+- **Type-safe parameterized queries** with SQLQueryBindings enforcement and Partial<T> for instance updates
 - **Statement caching** with automatic prepared statement reuse for 30-50% performance improvement
 - **Statement finalization** for memory leak prevention
+- **Transaction support** with ACID compliance, isolation levels, savepoints, and nested transactions
+- **Enhanced error system** with BunSqliteOrmError base class and 8+ specialized error types
 - File-based and in-memory database support
 - SQL defaults with automatic entity reload after INSERT
-- Comprehensive error handling with custom error types
+- Comprehensive error handling with entity context and timestamps
 
 ### Validation
 - Full class-validator integration with automatic validation
@@ -140,6 +142,19 @@ await user.update({
 // Bulk operations
 await User.updateAll({ isActive: false }, { department: 'Sales' });
 await User.deleteAll({ isActive: false });
+
+// Transaction support
+const result = await dataSource.transaction(async (tx) => {
+  const user = await User.create({ 
+    name: 'John Doe',
+    email: 'john@example.com' 
+  });
+  const profile = await Profile.create({ 
+    userId: user.id,
+    bio: 'Software Engineer' 
+  });
+  return { user, profile }; // Both created atomically
+});
 ```
 
 ### Advanced Entity Features
@@ -268,15 +283,28 @@ export class Product extends BaseEntity {
 ### Error Handling
 
 ```typescript
-import { DatabaseError, EntityNotFoundError, ValidationError } from 'bun-sqlite-orm';
+import { 
+  BunSqliteOrmError,
+  DatabaseError, 
+  EntityNotFoundError, 
+  ValidationError,
+  TransactionError,
+  ConstraintViolationError 
+} from 'bun-sqlite-orm';
 
 try {
   const user = await User.get(999);
 } catch (error) {
-  if (error instanceof EntityNotFoundError) {
-    console.log('User not found');
-  } else if (error instanceof DatabaseError) {
-    console.log('Database error:', error.message);
+  if (error instanceof BunSqliteOrmError) {
+    console.log(`ORM Error in entity: ${error.entityName}`);
+    console.log(`Error type: ${error.constructor.name}`);
+    console.log(`Timestamp: ${error.timestamp}`);
+    
+    if (error instanceof EntityNotFoundError) {
+      console.log('User not found:', error.criteria);
+    } else if (error instanceof DatabaseError) {
+      console.log('Database error:', error.message, error.operation);
+    }
   }
 }
 
@@ -284,7 +312,18 @@ try {
   await User.create({ email: 'invalid-email' });
 } catch (error) {
   if (error instanceof ValidationError) {
-    console.log('Validation errors:', error.details);
+    console.log(`Validation errors for ${error.entityName}:`, error.errors);
+  }
+}
+
+// Transaction error handling
+try {
+  await dataSource.transaction(async (tx) => {
+    // Complex operations
+  });
+} catch (error) {
+  if (error instanceof TransactionError) {
+    console.log(`Transaction ${error.operation} failed: ${error.transactionId}`);
   }
 }
 ```
@@ -364,6 +403,199 @@ await user.save(); // Only updates changed fields
 console.log(user.isChanged()); // false
 
 await user.reload(); // Refresh from database
+```
+
+## Transaction Support
+
+BunSQLiteORM provides comprehensive transaction support with ACID compliance, automatic rollback on errors, and advanced features like savepoints and isolation levels.
+
+### Basic Transactions
+
+```typescript
+// Simple transaction with automatic commit/rollback
+const result = await dataSource.transaction(async (tx) => {
+  const user = await User.create({
+    name: 'John Doe',
+    email: 'john@example.com'
+  });
+  
+  const profile = await Profile.create({
+    userId: user.id,
+    bio: 'Software Engineer'
+  });
+  
+  // If any operation fails, entire transaction is rolled back
+  if (someBusinessRule(user, profile)) {
+    throw new Error('Business logic violation'); // Triggers rollback
+  }
+  
+  return { user, profile }; // Success - transaction commits
+});
+
+// Parallel operations within transaction
+const [users, posts] = await dataSource.transactionParallel([
+  async (tx) => Promise.all([
+    User.create({ name: 'Alice' }),
+    User.create({ name: 'Bob' })
+  ]),
+  async (tx) => Promise.all([
+    Post.create({ title: 'Post 1', content: '...' }),
+    Post.create({ title: 'Post 2', content: '...' })
+  ])
+]);
+
+// Sequential operations with result chaining
+const finalResult = await dataSource.transactionSequential([
+  async (tx) => User.create({ name: 'John' }),
+  async (tx, user) => Post.create({ 
+    title: 'Hello', 
+    userId: user.id 
+  }),
+  async (tx, post) => Comment.create({ 
+    text: 'Great post!', 
+    postId: post.id 
+  })
+]);
+```
+
+### Savepoints (Nested Transactions)
+
+```typescript
+await dataSource.transaction(async (tx) => {
+  const user = await User.create({ name: 'John' });
+  
+  // Create savepoint for risky operations
+  const savepoint = await tx.savepoint('user_profile');
+  
+  try {
+    await Profile.create({ userId: user.id, bio: 'Complex bio...' });
+    await tx.releaseSavepoint(savepoint); // Success
+  } catch (error) {
+    await tx.rollbackToSavepoint(savepoint); // Rollback to savepoint
+    // User still exists, but profile creation was undone
+  }
+  
+  return user;
+});
+```
+
+### Transaction Isolation Levels
+
+```typescript
+// Available isolation levels:
+// - 'DEFERRED' (default): Transaction starts when first read/write occurs
+// - 'IMMEDIATE': Transaction starts immediately, blocks other writers  
+// - 'EXCLUSIVE': Transaction starts immediately, blocks all other connections
+
+await dataSource.transaction(async (tx) => {
+  // High-priority operations that need immediate locks
+  const account = await Account.get(accountId);
+  account.balance -= withdrawAmount;
+  await account.save();
+}, { isolation: 'IMMEDIATE' });
+```
+
+### Manual Transaction Control
+
+```typescript
+const tx = dataSource.createTransaction({ isolation: 'IMMEDIATE' });
+
+try {
+  await tx.begin();
+  
+  const user = await User.create({ name: 'John' });
+  const profile = await Profile.create({ userId: user.id });
+  
+  await tx.commit();
+  return { user, profile };
+} catch (error) {
+  await tx.rollback();
+  throw error;
+}
+```
+
+## Enhanced Error System
+
+BunSQLiteORM features a comprehensive error handling system with a common base class and rich context information for better debugging and user experience.
+
+### Error Base Class and Specialized Types
+
+```typescript
+import { 
+  BunSqliteOrmError,
+  ValidationError, 
+  DatabaseError, 
+  EntityNotFoundError,
+  TransactionError,
+  ConnectionError,
+  ConstraintViolationError,
+  ConfigurationError,
+  MigrationError,
+  QueryError,
+  TypeConversionError
+} from 'bun-sqlite-orm';
+
+try {
+  const user = await User.get(invalidId);
+} catch (error) {
+  if (error instanceof BunSqliteOrmError) {
+    // All ORM errors have common properties
+    console.log(`Entity: ${error.entityName}`);
+    console.log(`Error Type: ${error.constructor.name}`);
+    console.log(`Timestamp: ${error.timestamp}`);
+    
+    // Handle specific error types
+    if (error instanceof EntityNotFoundError) {
+      console.log(`Search criteria: ${JSON.stringify(error.criteria)}`);
+      console.log(`Entity: ${error.entity}`); // Getter for entityName
+    } else if (error instanceof ValidationError) {
+      console.log(`Validation errors for ${error.entityName}:`, error.errors);
+    } else if (error instanceof ConstraintViolationError) {
+      console.log(`Constraint violation: ${error.constraintType} on ${error.columnName}`);
+    } else if (error instanceof TransactionError) {
+      console.log(`Transaction ${error.operation} failed`);
+      console.log(`Transaction ID: ${error.transactionId}`);
+    }
+  } else {
+    // Handle non-ORM errors
+    console.log('Non-ORM error:', error);
+  }
+}
+```
+
+### Error Types and Context
+
+- **BunSqliteOrmError** - Base class with timestamp and optional entityName
+- **EntityNotFoundError** - Entity lookup failures with criteria context
+- **ValidationError** - Entity validation failures with detailed field errors
+- **DatabaseError** - Database operation failures with operation context
+- **TransactionError** - Transaction operation failures (begin, commit, rollback, savepoint)
+- **ConnectionError** - Database connection issues with path and connection type
+- **ConstraintViolationError** - Database constraint violations with constraint details
+- **ConfigurationError** - Configuration and setup issues
+- **QueryError** - SQL query execution failures with SQL and parameters
+- **TypeConversionError** - Type conversion failures with property context
+- **MigrationError** - Migration operation failures with direction and migration name
+
+### User-Friendly Error Handling
+
+```typescript
+function renderErrorToUser(error: unknown): string {
+  if (error instanceof EntityNotFoundError) {
+    return `${error.entity} not found. Please check your search criteria.`;
+  } else if (error instanceof ValidationError) {
+    const fieldErrors = error.errors.map(e => `${e.property}: ${e.message}`).join(', ');
+    return `Invalid ${error.entityName}: ${fieldErrors}`;
+  } else if (error instanceof ConstraintViolationError) {
+    return `Data conflict: ${error.constraintType} constraint violation`;
+  } else if (error instanceof TransactionError) {
+    return `Transaction failed: ${error.operation} operation could not complete`;
+  } else if (error instanceof BunSqliteOrmError) {
+    return `Database operation failed: ${error.message}`;
+  } else {
+    return 'An unexpected error occurred';
+  }
+}
 ```
 
 ## Common Patterns
@@ -681,11 +913,10 @@ Solution: Use unique index names or let the system auto-generate them.
 - **Relations**: No built-in relationship support (@OneToMany, @ManyToOne, etc.) - planned for v1.3.0
 - **Advanced Query Builder**: Limited to exact match queries - complex conditions planned for future versions
 - **Migrations**: Auto-migration only - manual migration system planned for v1.4.0
-- **Transactions**: No transaction wrapper methods - planned for v1.3.0
 
 ## Future Roadmap
 
-- **v1.3.0**: Comprehensive relationship support and basic transaction support
+- **v1.3.0**: Comprehensive relationship support (@OneToMany, @ManyToOne, etc.)
 - **v1.4.0**: Advanced query builder, manual migrations, entity lifecycle hooks
 - **v1.5.0**: Performance optimizations, extensions support, CLI tools
 
