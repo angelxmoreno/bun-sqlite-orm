@@ -34,7 +34,8 @@
 - ⚡ **Statement Caching** - Automatic prepared statement caching for 30-50% performance improvement
 - 📈 **Database Indexing** - Comprehensive index support with simple, composite, and unique indexes
 - 📝 **Flexible Primary Keys** - Support for auto-increment, UUID, custom, and composite primary key strategies
-- 🔒 **Validation & Safety** - Automatic entity validation with detailed error reporting
+- 🔒 **Enhanced Error System** - Comprehensive error handling with base class and entity context
+- ✅ **Validation & Safety** - Automatic entity validation with detailed error reporting
 - 📊 **Entity State Tracking** - Built-in change tracking and dirty state management
 - 🎨 **Decorator Driven** - Clean, declarative entity definitions using TypeScript decorators
 
@@ -695,11 +696,69 @@ status!: string;
 randomValue!: number;
 ```
 
-### Error Handling
+## 🚨 Enhanced Error System
+
+BunSQLiteORM features a comprehensive error handling system with a common base class and rich context information for better debugging and user experience.
+
+### Error Base Class
+
+All ORM-specific errors extend `BunSqliteOrmError`, enabling graceful error handling:
 
 ```typescript
-import { ValidationError, DatabaseError, EntityNotFoundError } from 'bun-sqlite-orm';
+import { 
+    BunSqliteOrmError,
+    ValidationError, 
+    DatabaseError, 
+    EntityNotFoundError,
+    TransactionError,
+    ConstraintViolationError
+} from 'bun-sqlite-orm';
 
+try {
+    const user = await User.get(invalidId);
+} catch (error) {
+    if (error instanceof BunSqliteOrmError) {
+        // All ORM errors have common properties
+        console.log(`Entity: ${error.entityName}`);
+        console.log(`Error Type: ${error.constructor.name}`);
+        console.log(`Timestamp: ${error.timestamp}`);
+        
+        // Handle specific error types
+        if (error instanceof EntityNotFoundError) {
+            console.log(`Search criteria: ${JSON.stringify(error.criteria)}`);
+            console.log(`Entity: ${error.entity}`); // Getter for entityName
+        } else if (error instanceof ValidationError) {
+            console.log(`Validation errors for ${error.entityName}:`, error.errors);
+        } else if (error instanceof ConstraintViolationError) {
+            console.log(`Constraint violation: ${error.constraintType} on ${error.columnName}`);
+        }
+    } else {
+        // Handle non-ORM errors
+        console.log('Non-ORM error:', error);
+    }
+}
+```
+
+### Specialized Error Classes
+
+#### Core Entity Errors
+- **`EntityNotFoundError`** - Entity lookup failures with criteria context
+- **`ValidationError`** - Entity validation failures with detailed field errors
+- **`DatabaseError`** - Database operation failures with operation context
+
+#### Advanced Error Types
+- **`TransactionError`** - Transaction operation failures (begin, commit, rollback, savepoint)
+- **`ConnectionError`** - Database connection issues with path and connection type
+- **`ConstraintViolationError`** - Database constraint violations with constraint details
+- **`ConfigurationError`** - Configuration and setup issues
+- **`QueryError`** - SQL query execution failures with SQL and parameters
+- **`TypeConversionError`** - Type conversion failures with property context
+- **`MigrationError`** - Migration operation failures with direction and migration name
+
+### Error Handling Examples
+
+#### Validation Errors
+```typescript
 try {
     const user = await User.create({
         name: '', // Invalid: too short
@@ -707,22 +766,80 @@ try {
     });
 } catch (error) {
     if (error instanceof ValidationError) {
-        console.log('Validation failed:', error.errors);
-        // Access detailed validation errors
+        console.log(`Validation failed for ${error.entityName}:`);
         error.errors.forEach(err => {
-            console.log(`${err.property}: ${err.constraints}`);
+            console.log(`  ${err.property}: ${err.message}`);
         });
     }
 }
+```
 
+#### Entity Not Found
+```typescript
 try {
     const user = await User.get(999); // Non-existent ID
 } catch (error) {
     if (error instanceof EntityNotFoundError) {
-        console.log('User not found');
+        console.log(`${error.entity} not found with criteria:`, error.criteria);
     }
 }
 ```
+
+#### Database Constraint Violations
+```typescript
+try {
+    await User.create({ email: 'existing@example.com' }); // Duplicate email
+} catch (error) {
+    if (error instanceof ConstraintViolationError) {
+        console.log(`Constraint violation: ${error.constraintType}`);
+        console.log(`Column: ${error.columnName}, Value: ${error.value}`);
+    }
+}
+```
+
+#### Transaction Errors
+```typescript
+try {
+    await dataSource.transaction(async (tx) => {
+        // Complex transaction operations
+        throw new Error('Simulated failure');
+    });
+} catch (error) {
+    if (error instanceof TransactionError) {
+        console.log(`Transaction ${error.operation} failed`);
+        console.log(`Transaction ID: ${error.transactionId}`);
+    }
+}
+```
+
+### User-Friendly Error Messages
+
+Create user-facing error messages easily:
+
+```typescript
+function renderErrorToUser(error: unknown): string {
+    if (error instanceof EntityNotFoundError) {
+        return `${error.entity} not found. Please check your search criteria.`;
+    } else if (error instanceof ValidationError) {
+        const fieldErrors = error.errors.map(e => `${e.property}: ${e.message}`).join(', ');
+        return `Invalid ${error.entityName}: ${fieldErrors}`;
+    } else if (error instanceof ConstraintViolationError) {
+        return `Data conflict: ${error.constraintType} constraint violation`;
+    } else if (error instanceof BunSqliteOrmError) {
+        return `Database operation failed: ${error.message}`;
+    } else {
+        return 'An unexpected error occurred';
+    }
+}
+```
+
+### Error Context Benefits
+
+- **Entity Names**: Know which entity caused the error
+- **Timestamps**: Track when errors occurred for debugging
+- **Operation Context**: Understand what operation failed (create, update, delete, etc.)
+- **Structured Data**: Access error-specific properties (criteria, SQL, constraints, etc.)
+- **Type Safety**: Full TypeScript support for all error properties
 
 ## 🛠️ Development
 

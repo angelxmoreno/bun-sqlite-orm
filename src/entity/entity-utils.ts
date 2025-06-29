@@ -64,7 +64,12 @@ export async function executeWithErrorHandling<T>(
             throw error;
         }
         logger.error(`Database error in ${entityName}.${operationName}()`, error);
-        throw new DatabaseError(`Failed to ${operationName.toLowerCase()} ${entityName}`, error as Error);
+        throw new DatabaseError(
+            `Failed to ${operationName.toLowerCase()} ${entityName}`,
+            error as Error,
+            entityName,
+            operationName.toLowerCase()
+        );
     }
 }
 

@@ -241,7 +241,7 @@ export abstract class BaseEntity {
             // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
             logger.error(`Database error in ${this.name}.deleteAll()`, error);
             // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
-            throw new DatabaseError(`Failed to delete ${this.name} records`, error as Error);
+            throw new DatabaseError(`Failed to delete ${this.name} records`, error as Error, this.name, 'delete');
         }
     }
 
@@ -269,7 +269,7 @@ export abstract class BaseEntity {
             // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
             logger.error(`Database error in ${this.name}.updateAll()`, error);
             // biome-ignore lint/complexity/noThisInStatic: Required for Active Record polymorphism
-            throw new DatabaseError(`Failed to update ${this.name} records`, error as Error);
+            throw new DatabaseError(`Failed to update ${this.name} records`, error as Error, this.name, 'update');
         }
     }
 
@@ -313,7 +313,12 @@ export abstract class BaseEntity {
             this._isNew = true;
         } catch (error) {
             logger.error(`Database error in ${this.constructor.name}.remove()`, error);
-            throw new DatabaseError(`Failed to remove ${this.constructor.name}`, error as Error);
+            throw new DatabaseError(
+                `Failed to remove ${this.constructor.name}`,
+                error as Error,
+                this.constructor.name,
+                'remove'
+            );
         }
     }
 
@@ -455,7 +460,7 @@ export abstract class BaseEntity {
             );
 
             logger.warn('Validation failed', { errors: validationErrors });
-            throw new ValidationError(validationErrors);
+            throw new ValidationError(this.constructor.name, validationErrors);
         }
     }
 
@@ -538,7 +543,12 @@ export abstract class BaseEntity {
             logger.info(`Created new ${this.constructor.name} entity`);
         } catch (error) {
             logger.error(`Database error in ${this.constructor.name}._insert()`, error);
-            throw new DatabaseError(`Failed to create ${this.constructor.name}`, error as Error);
+            throw new DatabaseError(
+                `Failed to create ${this.constructor.name}`,
+                error as Error,
+                this.constructor.name,
+                'create'
+            );
         }
     }
 
@@ -574,7 +584,12 @@ export abstract class BaseEntity {
             logger.info(`Updated ${this.constructor.name} entity`);
         } catch (error) {
             logger.error(`Database error in ${this.constructor.name}._update()`, error);
-            throw new DatabaseError(`Failed to update ${this.constructor.name}`, error as Error);
+            throw new DatabaseError(
+                `Failed to update ${this.constructor.name}`,
+                error as Error,
+                this.constructor.name,
+                'update'
+            );
         }
     }
 
