@@ -1,5 +1,32 @@
 
 
+# [1.5.0](https://github.com/angelxmoreno/bun-sqlite-orm/compare/v1.4.0...v1.5.0) (2025-06-30)
+
+
+### Bug Fixes
+
+* addressed CodeRabbit suggestion for collision-prone empty string marker ([f80e84b](https://github.com/angelxmoreno/bun-sqlite-orm/commit/f80e84bfe6ae3416740394931593cb3e6bbc31c7))
+* addressed CodeRabbit suggestion for insufficient transformer load error test ([0fd939d](https://github.com/angelxmoreno/bun-sqlite-orm/commit/0fd939dffe334c4036292ee6a097660bf630bdce))
+* addressed CodeRabbit suggestion for misleading JSON query test ([292a8de](https://github.com/angelxmoreno/bun-sqlite-orm/commit/292a8deb34de548be047ca7f515f8209c77b2ca0))
+* addressed CodeRabbit suggestion for misleading test name ([db4bc69](https://github.com/angelxmoreno/bun-sqlite-orm/commit/db4bc69e0750640ec162edd991c8760d30d600f1))
+* implement inheritance metadata collection to resolve entity inheritance issues ([5ca9131](https://github.com/angelxmoreno/bun-sqlite-orm/commit/5ca9131f87af1d4455c1b4f8c935d7a7091400f3)), closes [#51](https://github.com/angelxmoreno/bun-sqlite-orm/issues/51)
+* implement proper sequential transaction result chaining ([6f5f025](https://github.com/angelxmoreno/bun-sqlite-orm/commit/6f5f025bf7fd561a129e46b6b91a0c758ec35396))
+* let SQLite handle savepoint cleanup during commit automatically ([dfe2cfc](https://github.com/angelxmoreno/bun-sqlite-orm/commit/dfe2cfc0a50346d11ed17d278dcca7e551e90a3a))
+* prevent base entities without @Entity decorator from creating unwanted tables ([#50](https://github.com/angelxmoreno/bun-sqlite-orm/issues/50)) ([69e6bcb](https://github.com/angelxmoreno/bun-sqlite-orm/commit/69e6bcb2cf1355a39db6ac4b7f90d0f158509cc2))
+* refactor decorator tests to use inline entities and prevent CI metadata pollution ([9e78a38](https://github.com/angelxmoreno/bun-sqlite-orm/commit/9e78a38c1eace200d796af185d07ddfe03efd535)), closes [#50](https://github.com/angelxmoreno/bun-sqlite-orm/issues/50) [#51](https://github.com/angelxmoreno/bun-sqlite-orm/issues/51)
+* refactor index decorator tests to use inline entities and eliminate CI failures ([86c70b0](https://github.com/angelxmoreno/bun-sqlite-orm/commit/86c70b079316c270908f3c4966d6ada82f7dbb6c)), closes [#51](https://github.com/angelxmoreno/bun-sqlite-orm/issues/51)
+* resolve savepoint hanging issues and enable all savepoint tests ([b10933c](https://github.com/angelxmoreno/bun-sqlite-orm/commit/b10933c05fdb18764403a3dbcd3be59ef78a7fa9))
+* resolved global index name conflicts in index decorator tests ([317ed89](https://github.com/angelxmoreno/bun-sqlite-orm/commit/317ed894828b62800b2641c110c57b6d31016085))
+* temporarily skip problematic savepoint tests to prevent hanging ([30177ec](https://github.com/angelxmoreno/bun-sqlite-orm/commit/30177ece5bb880ff7a11e74148e5c2c7f5b81262))
+
+
+### Features
+
+* add comprehensive transaction support with ACID compliance ([8c5927b](https://github.com/angelxmoreno/bun-sqlite-orm/commit/8c5927ba849f1cdd90eb405240e03af3de38bbb2))
+* add JSON column support and data transformers ([e66e982](https://github.com/angelxmoreno/bun-sqlite-orm/commit/e66e9823349a6936600d3d0dcc7d256d5aa0474f)), closes [#61](https://github.com/angelxmoreno/bun-sqlite-orm/issues/61)
+* implement enhanced error system with base class and entity context ([b0e9294](https://github.com/angelxmoreno/bun-sqlite-orm/commit/b0e929424df0255380d975cb6d9b631f613a39e2)), closes [#57](https://github.com/angelxmoreno/bun-sqlite-orm/issues/57)
+* improve instance update() method type safety with Partial<T> ([a6050d8](https://github.com/angelxmoreno/bun-sqlite-orm/commit/a6050d8060ee853a3221c73e0fa5dbe29873f799))
+
 # [1.4.0](https://github.com/angelxmoreno/bun-sqlite-orm/compare/v1.3.0...v1.4.0) (2025-06-25)
 
 
