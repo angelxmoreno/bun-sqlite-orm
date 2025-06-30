@@ -1,5 +1,12 @@
 
 
+## [1.5.1](https://github.com/angelxmoreno/bun-sqlite-orm/compare/v1.5.0...v1.5.1) (2025-06-30)
+
+
+### Bug Fixes
+
+* resolve README rendering issue in Manual Transaction Control section ([f5ee884](https://github.com/angelxmoreno/bun-sqlite-orm/commit/f5ee884ce72bf936cd3916454d103336ba225502))
+
 # [1.5.0](https://github.com/angelxmoreno/bun-sqlite-orm/compare/v1.4.0...v1.5.0) (2025-06-30)
 
 
