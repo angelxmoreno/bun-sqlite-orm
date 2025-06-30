@@ -377,6 +377,7 @@ try {
     await tx.rollback();
     throw error;
 }
+```
 
 ## 🎨 Decorators Reference
 
